@@ -1,0 +1,93 @@
+{
+  "mainCards": [
+    "I want...",
+    "Help",
+    "Yes",
+    "No",
+    "Food",
+    "Water",
+    "Bathroom",
+    "Stop"
+  ],
+  "categories": {
+    "I want...": [
+      "Food",
+      "Water",
+      "Rest",
+      "Play",
+      "Help",
+      "Bathroom",
+      "Sleep",
+      "Talk"
+    ],
+    "Help": [
+      "Call Mom",
+      "Call Dad",
+      "Call Doctor",
+      "Emergency",
+      "Pain",
+      "Tired",
+      "Happy",
+      "Sad"
+    ],
+    "Yes": [
+      "Agree",
+      "Good",
+      "Continue",
+      "More",
+      "Again",
+      "Okay",
+      "Sure",
+      "Hello"
+    ],
+    "No": [
+      "Stop",
+      "No Thanks",
+      "Wrong",
+      "Different",
+      "Not",
+      "Disagree",
+      "Later",
+      "Done"
+    ],
+    "Food": [
+      "Banana",
+      "Bread",
+      "Cheese",
+      "Chicken",
+      "Rice",
+      "Pasta",
+      "Juice"
+    ],
+    "Water": [
+      "Cold",
+      "Warm",
+      "Ice",
+      "Drink",
+      "More",
+      "Less",
+      "Now",
+      "Later"
+    ],
+    "Bathroom": [
+      "Toilet",
+      "Wash",
+      "Shower",
+      "Wet",
+      "Dry",
+      "Help",
+      "Done",
+      "Pain"
+    ],
+    "Stop": [
+      "No More",
+      "Wait",
+      "Pause",
+      "Reset",
+      "Help",
+      "Done",
+      "Tired",
+      "Stop Now"
+    ]
+  }
+}
