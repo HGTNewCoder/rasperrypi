@@ -149,12 +149,10 @@ class WellBeingApp(QWidget):
         self.setWindowTitle("My Daily Well-Being")
         
         # Build screen instances
-        self.main_menu = self.create_main_menu()
-        self.response_screen = self.create_response_screen()
         
         self.stack = QStackedWidget(self)
-        self.stack.addWidget(self.main_menu)
-        self.stack.addWidget(self.response_screen)
+        self.stack.addWidget(self.create_main_menu())
+        self.stack.addWidget(self.create_response_screen())
         
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
