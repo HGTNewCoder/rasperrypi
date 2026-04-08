@@ -178,16 +178,14 @@ class CommBox(QFrame):
         
         self.bottom_half.setStyleSheet("background-color: white; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; border: none;")
 
-
-class WellBeingApp(QWidget):
+class Clock(QFrame):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("My Daily Well-Being")
         self.active_alarm_time = None
         self.timer_seconds_remaining = 0
-        
         self.sound_effect = QSoundEffect()
         self.sound_effect.setLoopCount(-2)
+
         if os.path.exists("alarm.wav"):
             self.sound_effect.setSource(QUrl.fromLocalFile(os.path.abspath("alarm.wav")))
         
@@ -195,60 +193,221 @@ class WellBeingApp(QWidget):
         self.core_timer.timeout.connect(self.process_time_events)
         self.core_timer.start(1000)
 
-        self.stack = QStackedWidget(self)
-        self.stack.addWidget(self.create_main_menu())      # Index 0
-        self.stack.addWidget(self.create_response_page())   # Index 1
-        self.stack.addWidget(self.create_clock_page())      # Index 2
-        self.stack.addWidget(self.create_bathroom_page())   # Index 3
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.stack)
+        self.btn_alarm_mode = QPushButton("ALARM")
+        self.btn_timer_mode = QPushButton("TIMER")
 
-    def create_main_menu(self):
+        self.hr_up = QPushButton("▲")
+        self.hr_down = QPushButton("▼")
+
+        self.mode_label = QLabel("Tap arrows to set alarm")
+        self.time_spinner = QTimeEdit(QTime.currentTime())
+
+
+
+
+    def create_clock_page(self):
         page = QWidget()
         page.setStyleSheet("background-color: #F0F8F7;")
-        layout = QVBoxLayout(page)
         
-        header_container = QFrame()
-        header_container.setStyleSheet("background-color: #8FC8C2; border: none;")
-        header_layout = QVBoxLayout(header_container)
-        header = QLabel(f"MY DAILY WELL-BEING\n{QDate.currentDate().toString('dddd, MMMM d, yyyy')}")
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setFont(QFont("Arial", 26, QFont.Weight.Bold))
-        header.setStyleSheet("color: #2C4C49;")
+        top_bar = QFrame()
+        top_bar.setFixedHeight(120)
+        top_bar.setStyleSheet("background-color: #8FC8C2; border: none;")
+        top_layout = QHBoxLayout(top_bar)
         
-        self.timer_status = QLabel("")
-        self.timer_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header_layout.addWidget(header)
-        header_layout.addWidget(self.timer_status)
-        layout.addWidget(header_container)
-
-        grid = QGridLayout()
-        grid.setContentsMargins(25, 10, 25, 10)
-        grid.setSpacing(20)
-        
-        cards = [
-            ("FOOD", "Request food or specify meal type.", "#AED6F1", "food.png", 0, 0),
-            ("FEELING", "Describe current mood and emotion.", "#F9E79F", "feeling.png", 0, 1),
-            ("EXERCISE", "Request activity or physical exercise.", "#D6EAF8", "exercise.png", 0, 2),
-            ("BATHROOM", "Request bathroom assistance.", "#D1F2EB", "bathroom.png", 0, 3),
-            ("YES / NO", "Confirmatory responses for staff.", "#FADBD8", "yes_no.png", 1, 0),
-            ("ENTERTAINMENT", "Request leisure activity or TV.", "#D5F5E3", "entertainment.png", 1, 1),
-            ("RECOMMEND ANSWER", "Suggestion from staff or system.", "#FCF3CF", "recommend.png", 1, 2),
-            ("CLOCK", "Check the time or daily schedule.", "#E8DAEF", "clock.png", 1, 3),
-        ]
-        
-        for title, desc, col, icon_file, r, c in cards:
-            card = CommBox(title=title, description=desc, bg_color=col, media_file=icon_file, callback=self.navigate)
-            grid.addWidget(card, r, c)
+        clock_title = QLabel("CLOCK SETTINGS")
+        clock_title.setFont(QFont("Arial", 32, QFont.Weight.Bold)) 
+        clock_title.setStyleSheet("color: white; border: none;")
+        top_layout.addWidget(clock_title, alignment=Qt.AlignmentFlag.AlignCenter)
             
-        self.bell = CommBox(title="", description="", bg_color="#F1948A", media_file="bell.png", is_bell=True, callback=self.navigate)
-        grid.addWidget(self.bell, 2, 0, 1, 4, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout = QVBoxLayout(page)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(top_bar)
         
-        layout.addLayout(grid)
-        return page
+        content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(100, 20, 100, 20)
+        content_layout.setSpacing(20)
+        
+        mode_box = QHBoxLayout()
+        
+        for b in [self.btn_alarm_mode, self.btn_timer_mode]:
+            b.setFixedSize(300, 80)
+            b.setCheckable(True)
+            b.setStyleSheet("QPushButton { background-color: #D1E8E5; border-radius: 40px; font-weight: bold; font-size: 26px; color: #2C4C49; border: none; } QPushButton:checked { background-color: #2C4C49; color: white; }")
+            
+        self.btn_alarm_mode.setChecked(True)
+        self.btn_alarm_mode.clicked.connect(lambda: self.switch_clock_mode("ALARM"))
+        self.btn_timer_mode.clicked.connect(lambda: self.switch_clock_mode("TIMER"))
+        mode_box.addWidget(self.btn_alarm_mode)
+        mode_box.addWidget(self.btn_timer_mode)
+        content_layout.addLayout(mode_box)
+        
+        center_card = QFrame()
+        center_card.setStyleSheet("background-color: white; border-radius: 40px; border: none;")
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setOffset(0, 6)
+        center_card.setGraphicsEffect(shadow)
 
+        card_layout = QVBoxLayout(center_card)
+        card_layout.setContentsMargins(40, 40, 40, 40)
+        
+        spinner_hbox = QHBoxLayout()
+        hr_vbox = QVBoxLayout()
+        for btn in [self.hr_up, self.hr_down]: 
+            btn.setFixedSize(80, 80)
+            btn.setStyleSheet("font-size: 40px; color: #8FC8C2; background: transparent; border: 3px solid #8FC8C2; border-radius: 40px;")
+        
+        self.hr_up.clicked.connect(lambda: self.spin_time(h=1))
+        self.hr_down.clicked.connect(lambda: self.spin_time(h=-1))
+        hr_vbox.addWidget(self.hr_up)
+        hr_vbox.addWidget(self.hr_down)
+        
+        self.time_spinner.setDisplayFormat("HH:mm")
+        self.time_spinner.setFixedSize(450, 200)
+        self.time_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.time_spinner.setStyleSheet("QTimeEdit { background-color: #F9F9F9; border: 3px solid #8FC8C2; border-radius: 30px; font-size: 130px; font-weight: bold; color: #2C4C49; } QTimeEdit::up-button, QTimeEdit::down-button { width: 0px; }")
+        
+        min_vbox = QVBoxLayout()
+        min_up = QPushButton("▲")
+        min_down = QPushButton("▼")
+        for btn in [min_up, min_down]: 
+            btn.setFixedSize(80, 80)
+            btn.setStyleSheet("font-size: 40px; color: #8FC8C2; background: transparent; border: 3px solid #8FC8C2; border-radius: 40px;")
+            
+        min_up.clicked.connect(lambda: self.spin_time(m=1))
+        min_down.clicked.connect(lambda: self.spin_time(m=-1))
+        min_vbox.addWidget(min_up)
+        min_vbox.addWidget(min_down)
+        
+        spinner_hbox.addLayout(hr_vbox)
+        spinner_hbox.addWidget(self.time_spinner)
+        spinner_hbox.addLayout(min_vbox)
+        card_layout.addLayout(spinner_hbox)
+        
+        self.mode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mode_label.setFont(QFont("Arial", 32, QFont.Weight.Bold)) 
+        self.mode_label.setStyleSheet("border: none; color: #444444;") 
+        card_layout.addWidget(self.mode_label)
+        
+        content_layout.addWidget(center_card)
+        
+        act_layout = QHBoxLayout()
+        self.start_btn = QPushButton("SET ALARM")
+        self.start_btn.setFixedSize(350, 100)
+        self.start_btn.setStyleSheet("background-color: #4D908E; color: white; border-radius: 50px; font-weight: bold; font-size: 30px; border: none;")
+        self.start_btn.clicked.connect(self.set_clock_action)
+        
+        back_btn = QPushButton("CANCEL")
+        back_btn.setFixedSize(350, 100)
+        back_btn.setStyleSheet("background-color: #BDBDBD; color: white; border-radius: 50px; font-weight: bold; font-size: 30px; border: none;")
+        back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        
+        act_layout.addWidget(back_btn)
+        act_layout.addWidget(self.start_btn)
+        content_layout.addLayout(act_layout)
+        
+        main_layout.addLayout(content_layout)
+        return page
+    def finish(self, choice):
+        icon_map = {
+            "YES": "yes.png", "NO": "no.png",
+            "TOILET": "toilet_pic.png", "SHOWER": "shower_pic.png",
+            "WASH": "wash_pic.jpg", "CLOTHES": "clothes_pic.jpg"
+        }
+        icon_path = icon_map.get(choice, "")
+
+        self.stack.setCurrentIndex(1)
+        self.resp_title.hide()
+        self.back_btn_resp.hide()
+        for i in range(self.resp_cards_container.count()):
+            w = self.resp_cards_container.itemAt(i).widget()
+            if w: w.hide()
+
+        while self.result_layout.count() > 1:
+            self.result_layout.takeAt(0)
+            
+        self.result_layout.insertStretch(0, 1)
+        self.result_layout.addStretch(1)
+
+        self.result_container.show()
+        
+        bg = "#D5F5E3" if choice in ["YES", "TOILET", "SHOWER", "WASH"] else "#FADBD8"
+        self.stack.widget(1).setStyleSheet(f"background-color: {bg}; border: none;")
+        
+        if os.path.exists(icon_path):
+            # FIXED THE TYPO HERE: KeepAspectRatio instead of KFeepAspectRatio
+            pix = QPixmap(icon_path).scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.result_icon.setPixmap(pix)
+            self.result_icon.show()
+        else:
+            self.result_icon.hide()
+
+        QTimer.singleShot(3000, self.reset_and_go_home)
+
+    def reset_and_go_home(self):
+        self.stack.widget(1).setStyleSheet("background-color: white; border: none;")
+        self.result_container.hide()
+        self.resp_title.show()
+        self.back_btn_resp.show()
+        for i in range(self.resp_cards_container.count()):
+            w = self.resp_cards_container.itemAt(i).widget()
+            if w: w.show()
+        self.stack.setCurrentIndex(0)
+
+    def spin_time(self, h=0, m=0):
+        current = self.time_spinner.time()
+        self.time_spinner.setTime(current.addSecs((h * 3600) + (m * 60)))
+
+    def switch_clock_mode(self, mode):
+        if mode == "ALARM":
+            self.btn_timer_mode.setChecked(False)
+            self.start_btn.setText("SET ALARM")
+            self.mode_label.setText("Tap arrows to set alarm")
+            self.time_spinner.setTime(QTime.currentTime())
+        else:
+            self.btn_alarm_mode.setChecked(False)
+            self.start_btn.setText("START TIMER")
+            self.mode_label.setText("Tap arrows to set duration")
+            self.time_spinner.setTime(QTime(0, 0))
+
+    def set_clock_action(self):
+        t = self.time_spinner.time()
+        if self.btn_alarm_mode.isChecked():
+            self.active_alarm_time = t.toString("HH:mm")
+        else:
+            self.timer_seconds_remaining = (t.hour() * 3600) + (t.minute() * 60)
+        self.stack.setCurrentIndex(0)
+
+    def process_time_events(self):
+        now_str = QTime.currentTime().toString("HH:mm")
+        if self.active_alarm_time and now_str == self.active_alarm_time:
+            self.active_alarm_time = None
+            self.trigger_alert("ALARM!")
+        
+        if self.timer_seconds_remaining > 0:
+            self.timer_seconds_remaining -= 1
+            m, s = divmod(self.timer_seconds_remaining, 60)
+            self.timer_status.setText(f"⏳ Timer: {m:02d}:{s:02d} remaining")
+            self.timer_status.setStyleSheet("color: white; background-color: #E67E22; border-radius: 10px; padding: 5px; border: none;")
+            if self.timer_seconds_remaining == 0:
+                self.timer_status.setText("")
+                self.trigger_alert("TIMER FINISHED!")
+        elif self.timer_status.text() != "":
+            self.timer_status.setText("")
+            self.timer_status.setStyleSheet("")
+
+    def trigger_alert(self, text):
+        self.sound_effect.play()
+        QMessageBox.information(self, "Alert", text)
+        self.sound_effect.stop()
+
+
+class BathRoom(QFrame):
+    def __init__(self):
+        super().__init__()
+    
     def create_bathroom_page(self):
         page = QWidget()
         page.setStyleSheet("background-color: #F0F8F7;")
@@ -284,6 +443,118 @@ class WellBeingApp(QWidget):
         layout.addWidget(back_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         layout.addSpacing(20)
 
+        return page
+    
+    def finish(self, choice):
+        icon_map = {
+            "YES": "yes.png", "NO": "no.png",
+            "TOILET": "toilet_pic.png", "SHOWER": "shower_pic.png",
+            "WASH": "wash_pic.jpg", "CLOTHES": "clothes_pic.jpg"
+        }
+        icon_path = icon_map.get(choice, "")
+
+        self.stack.setCurrentIndex(1)
+        self.resp_title.hide()
+        self.back_btn_resp.hide()
+        for i in range(self.resp_cards_container.count()):
+            w = self.resp_cards_container.itemAt(i).widget()
+            if w: w.hide()
+
+        while self.result_layout.count() > 1:
+            self.result_layout.takeAt(0)
+            
+        self.result_layout.insertStretch(0, 1)
+        self.result_layout.addStretch(1)
+
+        self.result_container.show()
+        
+        bg = "#D5F5E3" if choice in ["YES", "TOILET", "SHOWER", "WASH"] else "#FADBD8"
+        self.stack.widget(1).setStyleSheet(f"background-color: {bg}; border: none;")
+        
+        if os.path.exists(icon_path):
+            # FIXED THE TYPO HERE: KeepAspectRatio instead of KFeepAspectRatio
+            pix = QPixmap(icon_path).scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.result_icon.setPixmap(pix)
+            self.result_icon.show()
+        else:
+            self.result_icon.hide()
+
+        QTimer.singleShot(3000, self.reset_and_go_home)
+
+    def reset_and_go_home(self):
+        self.stack.widget(1).setStyleSheet("background-color: white; border: none;")
+        self.result_container.hide()
+        self.resp_title.show()
+        self.back_btn_resp.show()
+        for i in range(self.resp_cards_container.count()):
+            w = self.resp_cards_container.itemAt(i).widget()
+            if w: w.show()
+        self.stack.setCurrentIndex(0)
+
+class WellBeingApp(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("My Daily Well-Being")
+
+        bathroom = BathRoom()
+        clock = Clock()
+        
+        self.stack = QStackedWidget(self)
+        self.stack.addWidget(self.create_main_menu())      # Index 0
+        self.stack.addWidget(self.create_response_page())   # Index 1
+        self.stack.addWidget(clock.create_clock_page())      # Index 2
+        self.stack.addWidget(bathroom.create_bathroom_page())   # Index 3
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stack)
+
+    def create_main_menu(self):
+        page = QWidget()
+        page.setStyleSheet("background-color: #F0F8F7;")
+        main_menu_layout = QVBoxLayout(page)
+        
+        header_container = QFrame()
+        header_container.setStyleSheet("background-color: #8FC8C2; border: none;")
+        
+        header = QLabel(f"MY DAILY WELL-BEING\n{QDate.currentDate().toString('dddd, MMMM d, yyyy')}")
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header.setFont(QFont("Arial", 26, QFont.Weight.Bold))
+        header.setStyleSheet("color: #2C4C49;")
+        
+        self.timer_status = QLabel("")
+        self.timer_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        header_layout = QVBoxLayout(header_container)
+        header_layout.addWidget(header)
+        header_layout.addWidget(self.timer_status)
+        
+        main_menu_layout.addWidget(header_container)
+
+        grid_layout = QGridLayout()
+        grid_layout.setContentsMargins(25, 10, 25, 10)
+        grid_layout.setSpacing(20)
+        
+        #Convert to JSON file later
+        cards = [
+            ("FOOD", "Request food or specify meal type.", "#AED6F1", "food.png", 0, 0),
+            ("FEELING", "Describe current mood and emotion.", "#F9E79F", "feeling.png", 0, 1),
+            ("EXERCISE", "Request activity or physical exercise.", "#D6EAF8", "exercise.png", 0, 2),
+            ("BATHROOM", "Request bathroom assistance.", "#D1F2EB", "bathroom.png", 0, 3),
+            ("YES / NO", "Confirmatory responses for staff.", "#FADBD8", "yes_no.png", 1, 0),
+            ("ENTERTAINMENT", "Request leisure activity or TV.", "#D5F5E3", "entertainment.png", 1, 1),
+            ("RECOMMEND ANSWER", "Suggestion from staff or system.", "#FCF3CF", "recommend.png", 1, 2),
+            ("CLOCK", "Check the time or daily schedule.", "#E8DAEF", "clock.png", 1, 3),
+        ]
+        
+        for title, desc, col, icon_file, r, c in cards:
+            card = CommBox(title=title, description=desc, bg_color=col, media_file=icon_file, callback=self.navigate)
+            grid_layout.addWidget(card, r, c)
+            
+        self.bell = CommBox(title="", description="", bg_color="#F1948A", media_file="bell.png", is_bell=True, callback=self.navigate)
+        grid_layout.addWidget(self.bell, 2, 0, 1, 4, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        main_menu_layout.addLayout(grid_layout)
         return page
 
     def create_response_page(self):
@@ -363,165 +634,7 @@ class WellBeingApp(QWidget):
         btn.clicked.connect(callback)
         v.addWidget(btn)
         return card
-
-    def create_clock_page(self):
-        page = QWidget()
-        page.setStyleSheet("background-color: #F0F8F7;")
-        main_v = QVBoxLayout(page)
-        main_v.setContentsMargins(0, 0, 0, 0)
-        
-        top_bar = QFrame()
-        top_bar.setFixedHeight(120)
-        top_bar.setStyleSheet("background-color: #8FC8C2; border: none;")
-        top_layout = QHBoxLayout(top_bar)
-        
-        clock_title = QLabel("CLOCK SETTINGS")
-        clock_title.setFont(QFont("Arial", 32, QFont.Weight.Bold)) 
-        clock_title.setStyleSheet("color: white; border: none;")
-        top_layout.addWidget(clock_title, alignment=Qt.AlignmentFlag.AlignCenter)
-        main_v.addWidget(top_bar)
-        
-        content_layout = QVBoxLayout()
-        content_layout.setContentsMargins(100, 20, 100, 20)
-        content_layout.setSpacing(20)
-        
-        mode_box = QHBoxLayout()
-        self.btn_alarm_mode = QPushButton("ALARM")
-        self.btn_timer_mode = QPushButton("TIMER")
-        
-        for b in [self.btn_alarm_mode, self.btn_timer_mode]:
-            b.setFixedSize(300, 80)
-            b.setCheckable(True)
-            b.setStyleSheet("QPushButton { background-color: #D1E8E5; border-radius: 40px; font-weight: bold; font-size: 26px; color: #2C4C49; border: none; } QPushButton:checked { background-color: #2C4C49; color: white; }")
-            
-        self.btn_alarm_mode.setChecked(True)
-        self.btn_alarm_mode.clicked.connect(lambda: self.switch_clock_mode("ALARM"))
-        self.btn_timer_mode.clicked.connect(lambda: self.switch_clock_mode("TIMER"))
-        mode_box.addWidget(self.btn_alarm_mode)
-        mode_box.addWidget(self.btn_timer_mode)
-        content_layout.addLayout(mode_box)
-        
-        center_card = QFrame()
-        center_card.setStyleSheet("background-color: white; border-radius: 40px; border: none;")
-        
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setColor(QColor(0, 0, 0, 40))
-        shadow.setOffset(0, 6)
-        center_card.setGraphicsEffect(shadow)
-
-        card_layout = QVBoxLayout(center_card)
-        card_layout.setContentsMargins(40, 40, 40, 40)
-        
-        spinner_hbox = QHBoxLayout()
-        hr_vbox = QVBoxLayout()
-        self.hr_up = QPushButton("▲")
-        self.hr_down = QPushButton("▼")
-        for btn in [self.hr_up, self.hr_down]: 
-            btn.setFixedSize(80, 80)
-            btn.setStyleSheet("font-size: 40px; color: #8FC8C2; background: transparent; border: 3px solid #8FC8C2; border-radius: 40px;")
-        
-        self.hr_up.clicked.connect(lambda: self.spin_time(h=1))
-        self.hr_down.clicked.connect(lambda: self.spin_time(h=-1))
-        hr_vbox.addWidget(self.hr_up)
-        hr_vbox.addWidget(self.hr_down)
-        
-        self.time_spinner = QTimeEdit(QTime.currentTime())
-        self.time_spinner.setDisplayFormat("HH:mm")
-        self.time_spinner.setFixedSize(450, 200)
-        self.time_spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.time_spinner.setStyleSheet("QTimeEdit { background-color: #F9F9F9; border: 3px solid #8FC8C2; border-radius: 30px; font-size: 130px; font-weight: bold; color: #2C4C49; } QTimeEdit::up-button, QTimeEdit::down-button { width: 0px; }")
-        
-        min_vbox = QVBoxLayout()
-        self.min_up = QPushButton("▲")
-        self.min_down = QPushButton("▼")
-        for btn in [self.min_up, self.min_down]: 
-            btn.setFixedSize(80, 80)
-            btn.setStyleSheet("font-size: 40px; color: #8FC8C2; background: transparent; border: 3px solid #8FC8C2; border-radius: 40px;")
-            
-        self.min_up.clicked.connect(lambda: self.spin_time(m=1))
-        self.min_down.clicked.connect(lambda: self.spin_time(m=-1))
-        min_vbox.addWidget(self.min_up)
-        min_vbox.addWidget(self.min_down)
-        
-        spinner_hbox.addLayout(hr_vbox)
-        spinner_hbox.addWidget(self.time_spinner)
-        spinner_hbox.addLayout(min_vbox)
-        card_layout.addLayout(spinner_hbox)
-        
-        self.mode_label = QLabel("Tap arrows to set alarm")
-        self.mode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.mode_label.setFont(QFont("Arial", 32, QFont.Weight.Bold)) 
-        self.mode_label.setStyleSheet("border: none; color: #444444;") 
-        card_layout.addWidget(self.mode_label)
-        
-        content_layout.addWidget(center_card)
-        
-        act_layout = QHBoxLayout()
-        self.start_btn = QPushButton("SET ALARM")
-        self.start_btn.setFixedSize(350, 100)
-        self.start_btn.setStyleSheet("background-color: #4D908E; color: white; border-radius: 50px; font-weight: bold; font-size: 30px; border: none;")
-        self.start_btn.clicked.connect(self.set_clock_action)
-        
-        back_btn = QPushButton("CANCEL")
-        back_btn.setFixedSize(350, 100)
-        back_btn.setStyleSheet("background-color: #BDBDBD; color: white; border-radius: 50px; font-weight: bold; font-size: 30px; border: none;")
-        back_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
-        
-        act_layout.addWidget(back_btn)
-        act_layout.addWidget(self.start_btn)
-        content_layout.addLayout(act_layout)
-        
-        main_v.addLayout(content_layout)
-        return page
-
-    def spin_time(self, h=0, m=0):
-        current = self.time_spinner.time()
-        self.time_spinner.setTime(current.addSecs((h * 3600) + (m * 60)))
-
-    def switch_clock_mode(self, mode):
-        if mode == "ALARM":
-            self.btn_timer_mode.setChecked(False)
-            self.start_btn.setText("SET ALARM")
-            self.mode_label.setText("Tap arrows to set alarm")
-            self.time_spinner.setTime(QTime.currentTime())
-        else:
-            self.btn_alarm_mode.setChecked(False)
-            self.start_btn.setText("START TIMER")
-            self.mode_label.setText("Tap arrows to set duration")
-            self.time_spinner.setTime(QTime(0, 0))
-
-    def set_clock_action(self):
-        t = self.time_spinner.time()
-        if self.btn_alarm_mode.isChecked():
-            self.active_alarm_time = t.toString("HH:mm")
-        else:
-            self.timer_seconds_remaining = (t.hour() * 3600) + (t.minute() * 60)
-        self.stack.setCurrentIndex(0)
-
-    def process_time_events(self):
-        now_str = QTime.currentTime().toString("HH:mm")
-        if self.active_alarm_time and now_str == self.active_alarm_time:
-            self.active_alarm_time = None
-            self.trigger_alert("ALARM!")
-        
-        if self.timer_seconds_remaining > 0:
-            self.timer_seconds_remaining -= 1
-            m, s = divmod(self.timer_seconds_remaining, 60)
-            self.timer_status.setText(f"⏳ Timer: {m:02d}:{s:02d} remaining")
-            self.timer_status.setStyleSheet("color: white; background-color: #E67E22; border-radius: 10px; padding: 5px; border: none;")
-            if self.timer_seconds_remaining == 0:
-                self.timer_status.setText("")
-                self.trigger_alert("TIMER FINISHED!")
-        elif self.timer_status.text() != "":
-            self.timer_status.setText("")
-            self.timer_status.setStyleSheet("")
-
-    def trigger_alert(self, text):
-        self.sound_effect.play()
-        QMessageBox.information(self, "Alert", text)
-        self.sound_effect.stop()
-
+    
     def navigate(self, title):
         if title == "YES / NO": 
             self.stack.setCurrentIndex(1)
@@ -533,52 +646,6 @@ class WellBeingApp(QWidget):
             self.stack.setCurrentIndex(3)
         elif title == "BELL": 
             QMessageBox.warning(self, "Emergency", "Staff Alerted!")
-
-    def finish(self, choice):
-        icon_map = {
-            "YES": "yes.png", "NO": "no.png",
-            "TOILET": "toilet_pic.png", "SHOWER": "shower_pic.png",
-            "WASH": "wash_pic.jpg", "CLOTHES": "clothes_pic.jpg"
-        }
-        icon_path = icon_map.get(choice, "")
-
-        self.stack.setCurrentIndex(1)
-        self.resp_title.hide()
-        self.back_btn_resp.hide()
-        for i in range(self.resp_cards_container.count()):
-            w = self.resp_cards_container.itemAt(i).widget()
-            if w: w.hide()
-
-        while self.result_layout.count() > 1:
-            self.result_layout.takeAt(0)
-            
-        self.result_layout.insertStretch(0, 1)
-        self.result_layout.addStretch(1)
-
-        self.result_container.show()
-        
-        bg = "#D5F5E3" if choice in ["YES", "TOILET", "SHOWER", "WASH"] else "#FADBD8"
-        self.stack.widget(1).setStyleSheet(f"background-color: {bg}; border: none;")
-        
-        if os.path.exists(icon_path):
-            # FIXED THE TYPO HERE: KeepAspectRatio instead of KFeepAspectRatio
-            pix = QPixmap(icon_path).scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            self.result_icon.setPixmap(pix)
-            self.result_icon.show()
-        else:
-            self.result_icon.hide()
-
-        QTimer.singleShot(3000, self.reset_and_go_home)
-
-    def reset_and_go_home(self):
-        self.stack.widget(1).setStyleSheet("background-color: white; border: none;")
-        self.result_container.hide()
-        self.resp_title.show()
-        self.back_btn_resp.show()
-        for i in range(self.resp_cards_container.count()):
-            w = self.resp_cards_container.itemAt(i).widget()
-            if w: w.show()
-        self.stack.setCurrentIndex(0)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
