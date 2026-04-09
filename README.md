@@ -1,6 +1,11 @@
 # Qt 6.11.0 Build Guide for aarch64 (Linux)
 
-## Prerequisites
+## Target Environment
+- **Device:** Raspberry Pi 4 / 5
+- **OS:** Raspberry Pi OS Bookworm (64-bit)
+- **Python:** 3.8 or higher
+
+## Setup
 
 ### 1. System Update
 ```bash
@@ -10,66 +15,48 @@ sudo reboot
 
 ### 2. Install Dependencies
 ```bash
-sudo apt-get install \
+sudo apt-get install -y \
+  python3 python3-pip python3-venv python3-dev \
+  build-essential cmake ninja-build pkg-config \
+  flex bison ruby gperf \
   libboost-all-dev libudev-dev libinput-dev libts-dev libmtdev-dev \
-  libjpeg-dev libfontconfig1-dev libssl-dev libdbus-1-dev libglib2.0-dev \
-  libxkbcommon-dev libegl1-mesa-dev libgbm-dev libgles2-mesa-dev \
-  mesa-common-dev libasound2-dev libpulse-dev gstreamer1.0-omx \
-  libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev gstreamer1.0-alsa \
-  libvpx-dev libsrtp2-dev libsnappy-dev libnss3-dev "^libxcb.*" \
-  flex bison libxslt-dev ruby gperf libbz2-dev libcups2-dev \
-  libatkmm-1.6-dev libxi6 libxcomposite1 libfreetype6-dev libicu-dev \
-  libsqlite3-dev libxslt1-dev software-properties-common
-
-sudo apt install \
-  libgles2-mesa-dev libegl1-mesa-dev mesa-common-dev libdrm-dev
+  libssl-dev libdbus-1-dev libglib2.0-dev \
+  libicu-dev libsqlite3-dev libbz2-dev libsnappy-dev \
+  libxslt-dev libxslt1-dev libfontconfig1-dev libfreetype6-dev \
+  libjpeg-dev libcups2-dev libpq-dev \
+  libgl1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev \
+  mesa-common-dev libgbm-dev libdrm-dev \
+  libx11-dev libx11-xcb-dev libxext-dev libxfixes-dev \
+  libxi-dev libxi6 libxrender-dev libxcomposite1 \
+  libxcb1-dev libxcb-glx0-dev libxcb-keysyms1-dev libxcb-image0-dev \
+  libxcb-shm0-dev libxcb-icccm4-dev libxcb-sync-dev libxcb-xfixes0-dev \
+  libxcb-shape0-dev libxcb-randr0-dev libxcb-render-util0-dev \
+  libxcb-util-dev libxcb-xinerama0-dev libxcb-xkb-dev \
+  libxkbcommon-dev libxkbcommon-x11-dev \
+  libatspi2.0-dev libatkmm-1.6-dev \
+  libnss3-dev libvpx-dev libsrtp2-dev \
+  libasound2-dev libpulse-dev \
+  libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+  gstreamer1.0-alsa gstreamer1.0-tools \
+  gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
+  gstreamer1.0-libcamera
 ```
 
----
-
-## Download Sources
+### 3. Clone the Repository
 ```bash
-wget https://download.qt.io/official_releases/qt/6.11/6.11.0/submodules/qtbase-everywhere-src-6.11.0.tar.xz
-wget https://files.pythonhosted.org/packages/8b/47/b25c13eca5bebc6505394d0223e46d7ebf0c57dcac2ed908d7d19b18ab6b/pyqt6-6.11.0.tar.gz
+git clone https://github.com/HGTNewCoder/rasperrypi.git
+cd rasperrypi
 ```
 
----
-
-## Extract Archives
+### 4. Set Up Python Virtual Environment
 ```bash
-tar xf qtbase-everywhere-src-6.11.0.tar.xz
-tar -xzf pyqt6-6.11.0.tar.gz
+python -m venv .venv
+source .venv/bin/activate  # Run this every time you open a new terminal
+pip install -r requirements.txt
 ```
 
----
-
-## Build Qt Base
-
-### 1. Create Build Directory
+### 5. Run the App
 ```bash
-mkdir qtbase-everywhere-src-6.11.0/build
-cd qtbase-everywhere-src-6.11.0/build
-```
-
-### 2. Configure
-```bash
-export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
-
-cmake -G Ninja \
-  -DCMAKE_INSTALL_PREFIX=/opt/Qt/6.11.0-aarch64 \
-  -DQT_FEATURE_opengles2=ON \
-  -DQT_FEATURE_opengles3=ON \
-  -DQT_FEATURE_kms=ON \
-  -DQT_AVOID_CMAKE_ARCHIVING_API=ON \
-  ..
-```
-
-### 3. Compile
-```bash
-cmake --build . --parallel 2
-```
-
-### 4. Install
-```bash
-cmake --install .
+python app.py
 ```
