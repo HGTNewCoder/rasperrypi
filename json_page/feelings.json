@@ -22,7 +22,8 @@
 			"WORRIED": "Worried",
 			"STRESSED": "Stressed",
 			"SHOCKED": "Shocked",
-			"BORED": "Bored"
+			"BORED": "Bored",
+			"HUNGRY": "Hungry"
 		}
 	},
 	{
@@ -48,7 +49,8 @@
 			"WORRIED": "กังวล",
 			"STRESSED": "เครียด",
 			"SHOCKED": "ตกใจ",
-			"BORED": "เบื่อ"
+			"BORED": "เบื่อ",
+			"HUNGRY": "หิว"
 		}
 	}
 ]
