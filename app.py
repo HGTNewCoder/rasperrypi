@@ -3,6 +3,8 @@ import os
 import queue
 import threading
 import traceback
+import asyncio
+import tempfile
 from PyQt6.QtWidgets import (QApplication, QWidget, QGridLayout,
                              QVBoxLayout, QHBoxLayout, QLabel, QFrame,
                              QPushButton, QMessageBox, QStackedWidget, QTimeEdit,
@@ -11,11 +13,8 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QGridLayout,
 from PyQt6.QtGui import QFont, QPixmap, QColor, QPainter, QPainterPath
 from PyQt6.QtCore import Qt, QDate, QTimer, QTime, QUrl, QRectF, QPropertyAnimation, QEasingCurve
 from PyQt6.QtMultimedia import QSoundEffect
-import pyttsx3
-try:
-    import pythoncom
-except Exception:
-    pythoncom = None
+import pygame
+import edge_tts
 
 import json
 
@@ -64,93 +63,117 @@ def translate(text, lang_code):
     return lang_map.get(text, lang_map.get(text.upper(), lang_map.get(normalized.upper(), text)))
 
 
+# ==========================================
+# SPEECH SERVICE — edge-tts + pygame
+# ==========================================
 class SpeechService:
-    """Simple async TTS queue so UI interactions never block."""
+    """
+    Async TTS using edge-tts (Microsoft neural voices) + pygame for playback.
+    Supports instant interruption when a new item is selected.
+    """
+
+    # Map lang codes to edge-tts voice names
+    VOICE_MAP = {
+        "en": "en-US-JennyNeural",
+        "th": "th-TH-PremwadeeNeural",
+    }
+    FALLBACK_VOICE = "en-US-JennyNeural"
+
     def __init__(self):
+        pygame.mixer.init()
         self._queue = queue.Queue()
-        self._warned_missing_voice = set()
+        self._stop_flag = threading.Event()
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
 
     def speak(self, text, lang_code, fallback_text=None, fallback_lang_code=None):
-        if text:
-            self._queue.put((text, lang_code, fallback_text, fallback_lang_code))
+        """Call this from the UI thread. Instantly cancels any queued/playing speech."""
+        if not text:
+            return
 
-    def _run(self):
-        if pythoncom is not None:
+        # Signal the worker to stop current playback
+        self._stop_flag.set()
+
+        # Drain the queue so stale items are discarded
+        while not self._queue.empty():
             try:
-                pythoncom.CoInitialize()
+                self._queue.get_nowait()
+                self._queue.task_done()
             except Exception:
                 pass
 
-        engine = None
+        # Clear the flag BEFORE putting the new item so the worker doesn't skip it
+        self._stop_flag.clear()
+        self._queue.put((text, lang_code, fallback_text, fallback_lang_code))
+
+    # ------------------------------------------------------------------
+    # Worker thread
+    # ------------------------------------------------------------------
+    def _run(self):
         while True:
             text, lang_code, fallback_text, fallback_lang_code = self._queue.get()
+            tmp_path = None
             try:
-                if engine is None:
-                    engine = pyttsx3.init()
-                requested_lang = lang_code or "en"
-                chosen_text = text
-                chosen_lang = requested_lang
+                # If a newer speak() call already came in, skip this item
+                if self._stop_flag.is_set():
+                    continue
 
-                has_voice = self._pick_voice(engine, requested_lang)
-                if not has_voice and fallback_text:
-                    fb_lang = fallback_lang_code or "en"
-                    if requested_lang not in self._warned_missing_voice:
-                        print(f"TTS: no voice found for '{requested_lang}'. Falling back to '{fb_lang}'.")
-                        self._warned_missing_voice.add(requested_lang)
-                    chosen_text = fallback_text
-                    chosen_lang = fb_lang
-                    self._pick_voice(engine, chosen_lang)
+                voice = self.VOICE_MAP.get(lang_code, self.FALLBACK_VOICE)
 
-                engine.setProperty("rate", 150 if chosen_lang == "th" else 170)
-                engine.stop()
-                engine.say(chosen_text)
-                engine.runAndWait()
+                # Generate speech to a temp mp3 file (runs async in this thread)
+                tmp_path = self._generate_audio(text, voice)
+
+                if tmp_path is None and fallback_text:
+                    # Voice generation failed — try fallback language
+                    fb_voice = self.VOICE_MAP.get(fallback_lang_code, self.FALLBACK_VOICE)
+                    tmp_path = self._generate_audio(fallback_text, fb_voice)
+
+                if tmp_path is None:
+                    continue
+
+                # Stop whatever pygame is currently playing
+                pygame.mixer.music.stop()
+
+                if self._stop_flag.is_set():
+                    continue
+
+                pygame.mixer.music.load(tmp_path)
+                pygame.mixer.music.play()
+
+                # Wait for playback to finish OR stop flag to be set
+                while pygame.mixer.music.get_busy():
+                    if self._stop_flag.is_set():
+                        pygame.mixer.music.stop()
+                        break
+                    threading.Event().wait(0.05)
+
             except Exception as e:
-                print(f"TTS error: {e}")
+                print(f"[SpeechService] TTS error: {e}")
                 traceback.print_exc()
-                engine = None
             finally:
+                # Clean up temp file
+                if tmp_path and os.path.exists(tmp_path):
+                    try:
+                        os.remove(tmp_path)
+                    except Exception:
+                        pass
                 self._queue.task_done()
 
-    @staticmethod
-    def _pick_voice(engine, lang_code):
-        def _voice_lang_tokens(v):
-            tokens = []
-            try:
-                for entry in getattr(v, 'languages', []) or []:
-                    if isinstance(entry, (bytes, bytearray)):
-                        tokens.append(entry.decode(errors='ignore'))
-                    else:
-                        tokens.append(str(entry))
-            except Exception:
-                return ""
-            return " ".join(tokens).lower()
+    def _generate_audio(self, text, voice):
+        """Run edge-tts async generation synchronously in the worker thread."""
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as f:
+                tmp_path = f.name
 
-        for voice in engine.getProperty("voices"):
-            voice_id = (getattr(voice, 'id', '') or '').lower()
-            voice_name = (getattr(voice, 'name', '') or '').lower()
-            voice_langs = _voice_lang_tokens(voice)
-            blob = f"{voice_id} {voice_name} {voice_langs}".lower()
+            async def _synthesize():
+                communicate = edge_tts.Communicate(text, voice)
+                await communicate.save(tmp_path)
 
-            if lang_code == "th":
-                if voice_id in {"th", "th-th"} or voice_name == "thai":
-                    engine.setProperty("voice", voice.id)
-                    return True
-                if "thai" in blob or "th-" in blob or "th_" in blob or "th-th" in blob:
-                    engine.setProperty("voice", voice.id)
-                    return True
-
-            if lang_code == "en":
-                if voice_id in {"en", "en-us", "en-gb"} or voice_name == "english":
-                    engine.setProperty("voice", voice.id)
-                    return True
-                if "english" in blob or "en-" in blob or "en_" in blob or "en-us" in blob or "en-gb" in blob:
-                    engine.setProperty("voice", voice.id)
-                    return True
-
-        return False
+            asyncio.run(_synthesize())
+            return tmp_path
+        except Exception as e:
+            print(f"[SpeechService] edge-tts generation error: {e}")
+            return None
 
 
 # ==========================================
@@ -618,8 +641,8 @@ class WelcomePage(QFrame):
             bv.addWidget(t_lbl)
             btn_frame.setProperty("bg", bg)
             btn_frame.setProperty("fg", fg)
-            btn_frame.setProperty("label_key", label)      # keep EN key for logic
-            btn_frame.setProperty("text_label", t_lbl)     # reference for language updates
+            btn_frame.setProperty("label_key", label)
+            btn_frame.setProperty("text_label", t_lbl)
             btn_frame.mousePressEvent = lambda a0, f=btn_frame: self.select_mood(f)
             moods_h.addWidget(btn_frame)
             self.mood_buttons.append(btn_frame)
@@ -767,7 +790,6 @@ class WelcomePage(QFrame):
             QTimer.singleShot(d, lambda w=widget, dur=duration: self._fade_in(w, dur))
 
     def select_mood(self, frame):
-        # FIX 3: replies dict uses EN keys, translated using current_lang
         replies = {
             "Great":    "You look wonderful today! 😊",
             "Good":     "Glad to hear it! 😊",
@@ -799,7 +821,6 @@ class WelcomePage(QFrame):
         self.question_label.setText(translate("How are you feeling today?", lang_code))
         self.continue_btn.setText(translate("Continue to Menu ➜", lang_code))
         self.cancel_timer_btn.setText("✕ " + translate("Cancel Timer", lang_code))
-        # FIX 4: translate mood labels using the EN key stored in _label
         for btn_frame in self.mood_buttons:
             text_lbl = btn_frame.property("text_label")
             label_key = btn_frame.property("label_key")
@@ -1077,7 +1098,7 @@ def update_big_screen_shared(page, index):
     if page._is_rendering:
         return
     page._is_rendering = True
-    
+
     if not hasattr(page, '_items') or not page._items or index >= len(page._items):
         page._is_rendering = False
         return
@@ -1113,7 +1134,6 @@ def update_big_screen_shared(page, index):
         page.big_screen.setStyleSheet("background-color: transparent; border: none;")
     else:
         page.big_screen.setPixmap(QPixmap())
-        lang = getattr(page.app, '_current_lang', 'en')
         page.big_screen.setText(page._items[index])
         page.big_screen.setStyleSheet(
             f"background-color: {page._bg_fallback}; color: #2C4C49; font-size: 36px; "
@@ -1136,14 +1156,12 @@ def open_fullscreen_for_page(page, idx, back_page_index):
 
 
 def big_screen_update_language(page, lang_code):
-    """Update thumbnail label text and big screen for scrollable pages."""
     if hasattr(page, '_items_by_language') and page._items_by_language:
         page._items = page._items_by_language.get(lang_code, page._items_by_language.get("en", page._items))
         for idx, item in enumerate(page._box_widgets):
             label = item[1]
             if idx < len(page._items):
                 label.setText(page._items[idx])
-        # Also refresh big screen text if no image
         if hasattr(page, 'current_index'):
             update_big_screen_shared(page, page.current_index)
         return
@@ -1306,7 +1324,6 @@ class RecommendPage(BasePage):
         self.recommend_items = self.load_items_from_json("json_page/recommend.json", selected_language)
         build_big_screen_page(self, self.recommend_items, "recommend", "#FCF3CF", "#FCF3CF")
 
-        # Collect box button references after build_big_screen_page creates them
         self._box_buttons = []
         for i in range(self.h_layout.count()):
             item = self.h_layout.itemAt(i)
@@ -1322,7 +1339,6 @@ class RecommendPage(BasePage):
             self._update_recommend_big_screen(self.current_index)
 
     def _update_recommend_big_screen(self, index):
-        """Always show text on big screen — no image, no emoji fallback."""
         text = self._items[index] if index < len(self._items) else ""
         self.big_screen.setPixmap(QPixmap())
         self.big_screen.setText(text)
@@ -1385,6 +1401,7 @@ class RecommendPage(BasePage):
         if hasattr(self, 'current_index'):
             self._highlight_box(self.current_index)
             self._update_recommend_big_screen(self.current_index)
+
 
 # ==========================================
 # BATHROOM PAGE (index 5)
@@ -1512,8 +1529,6 @@ class BathroomPage(QFrame):
         )
         self.app.stack.setCurrentIndex(PAGE_FULLSCREEN_ITEM)
 
-    # FIX 7: Removed broken title_label check (hide_title=True means it never exists)
-    # Only update desc_label which is what's actually visible
     def update_language(self, lang_code):
         self.header.setText(translate("BATHROOM ASSISTANCE", lang_code))
         self.back_btn.setText(translate("GO BACK", lang_code))
@@ -1746,7 +1761,6 @@ class ClockPage(QFrame):
         spinner_hbox.addLayout(min_vbox)
         card_layout.addLayout(spinner_hbox)
 
-        # FIX 8: Use lowercase keys to match what translate() is called with in switch_clock_mode
         self.mode_label = QLabel("Tap arrows to set alarm")
         self.mode_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.mode_label.setFont(QFont("Arial", 32, QFont.Weight.Bold))
@@ -1783,7 +1797,6 @@ class ClockPage(QFrame):
             self.btn_alarm_mode.setChecked(True)
             self.btn_timer_mode.setChecked(False)
             self.start_btn.setText(translate("SET ALARM", self.current_lang))
-            # FIX 9: key matches EXTRA_TRANSLATIONS exactly
             self.mode_label.setText(translate("Tap arrows to set alarm", self.current_lang))
             self.time_spinner.setTime(QTime.currentTime())
         else:
@@ -1807,7 +1820,6 @@ class ClockPage(QFrame):
         self.app.stack.setCurrentIndex(PAGE_WELCOME)
 
     def update_language(self, lang_code):
-        # FIX 10: set current_lang FIRST before any translate() calls
         self.current_lang = lang_code
         self.clock_title.setText(translate("CLOCK SETTINGS", lang_code))
         self.btn_alarm_mode.setText(translate("ALARM", lang_code))
@@ -1859,7 +1871,6 @@ class AlertPage(QFrame):
         layout.addWidget(self.stop_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
     def set_alert_style(self, message, is_emergency=False):
-        # FIX 11: use _current_lang instead of fragile button text check
         lang_code = getattr(self.app, '_current_lang', 'en')
         self.message_label.setText(translate(message, lang_code))
         if is_emergency:
@@ -1912,40 +1923,40 @@ class WellBeingApp(QWidget):
         self.stack = QStackedWidget(self)
 
         self.welcome_page = WelcomePage(self)
-        self.stack.addWidget(self.welcome_page)        # index PAGE_WELCOME
+        self.stack.addWidget(self.welcome_page)
 
         self.main_menu = MainMenuPage(self)
-        self.stack.addWidget(self.main_menu)           # index PAGE_MAIN_MENU
+        self.stack.addWidget(self.main_menu)
 
         self.food_page = FoodPage(self)
-        self.stack.addWidget(self.food_page)           # index PAGE_FOOD
+        self.stack.addWidget(self.food_page)
 
         self.feeling_page = FeelingPage(self)
-        self.stack.addWidget(self.feeling_page)        # index PAGE_FEELING
+        self.stack.addWidget(self.feeling_page)
 
         self.position_page = PositionPage(self)
-        self.stack.addWidget(self.position_page)       # index PAGE_POSITION
+        self.stack.addWidget(self.position_page)
 
         self.bathroom_page = BathroomPage(self)
-        self.stack.addWidget(self.bathroom_page)       # index PAGE_BATHROOM
+        self.stack.addWidget(self.bathroom_page)
 
         self.yes_no_page = YesNoPage(self)
-        self.stack.addWidget(self.yes_no_page)         # index PAGE_YES_NO
+        self.stack.addWidget(self.yes_no_page)
 
         self.entertainment_page = EntertainmentPage(self)
-        self.stack.addWidget(self.entertainment_page)  # index PAGE_ENTERTAINMENT
+        self.stack.addWidget(self.entertainment_page)
 
         self.recommend_page = RecommendPage(self)
-        self.stack.addWidget(self.recommend_page)      # index PAGE_RECOMMEND
+        self.stack.addWidget(self.recommend_page)
 
         self.clock_page = ClockPage(self)
-        self.stack.addWidget(self.clock_page)          # index PAGE_CLOCK
+        self.stack.addWidget(self.clock_page)
 
         self.alert_page = AlertPage(self)
-        self.stack.addWidget(self.alert_page)          # index PAGE_ALERT
+        self.stack.addWidget(self.alert_page)
 
         self.fullscreen_item_page = FullScreenItemPage(self)
-        self.stack.addWidget(self.fullscreen_item_page)  # index PAGE_FULLSCREEN_ITEM
+        self.stack.addWidget(self.fullscreen_item_page)
 
         self.pages = [
             self.welcome_page, self.main_menu, self.food_page, self.feeling_page,
@@ -2052,6 +2063,7 @@ def _show_bathroom_item(self, item_name, description, media_file, bg_color, emoj
             f"background-color: {bg_color}; color: #2C4C49; border: none;")
 
     self.name_label.setText(f"{item_name}\n{description}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
