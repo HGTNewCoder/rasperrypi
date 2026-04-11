@@ -1060,34 +1060,8 @@ class FoodPage(BasePage):
 class FeelingPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "FEELING & MOOD")
-        self.feeling_items = [
-            "Happiness", "Joy", "Painful",
-            "Gratitude", "Relief", "Pride", "Confidence", "Hope",
-            "Optimism", "Excitement", "Enthusiasm", "Elation", "Bliss", "Euphoria",
-            "Amusement", "Love", "Fondness", "Caring", "Compassion",
-            "Empathy", "Sympathy", "Tenderness", "Attachment", "Trust", "Admiration",
-            "Respect", "Sadness", "Unhappiness", "Sorrow", "Grief", "Depression", "Despair",
-            "Hopelessness", "Loneliness", "Heartbreak", "Disappointment", "Regret",
-            "Guilt", "Shame", "Embarrassment", "Insecurity", "Worthlessness",
-            "Neglect", "Hurt", "Anger", "Annoyance", "Irritation", "Frustration",
-            "Aggravation", "Resentment", "Bitterness", "Hatred", "Rage", "Fury", "Hostility",
-            "Jealousy", "Envy", "Fear", "Anxiety", "Worry", "Nervousness", "Stress",
-            "Panic", "Terror", "Dread", "Apprehension", "Unease",
-            "Disgust", "Revulsion", "Contempt", "Loathing",
-            "Surprise", "Amazement", "Astonishment", "Shock",
-            "Curiosity", "Interest", "Intrigue", "Fascination",
-            "Boredom", "Apathy", "Indifference",
-            "Confusion", "Perplexity", "Doubt", "Uncertainty",
-            "Calmness", "Peacefulness", "Relaxation", "Serenity",
-            "Awe", "Wonder", "Inspiration",
-            "Anticipation", "Eagerness",
-            "Overwhelm", "Restlessness",
-            "Nostalgia", "Melancholy",
-            "Skepticism", "Suspicion",
-            "Acceptance", "Forgiveness",
-            "Determination", "Motivation",
-            "Fulfillment", "Disconnection", "Alienation"
-        ]
+        self.file_path = "json_page/feelings.json"
+        self.feeling_items = self.load_items_from_json(self.file_path, selected_language)
         build_big_screen_page(self, self.feeling_items, "feeling", "#F9E79F", "#F9E79F")
 
     def showEvent(self, event):
