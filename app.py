@@ -986,6 +986,7 @@ def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback):
     page._image_prefix = image_prefix
     page._items = items
     page._bg_fallback = bg_fallback
+    page._border_color = border_color
     page._box_widgets = []
 
     for i, item_name in enumerate(items):
@@ -1004,7 +1005,7 @@ def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback):
         """)
         box.clicked.connect(lambda checked, idx=i: page.on_box_clicked(idx))
         page.h_layout.addWidget(box)
-        page._box_widgets.append((item_name, label))
+        page._box_widgets.append((item_name, label, box))
 
     page.scroll_area.setWidget(page.container_widget)
     page.page_layout.insertWidget(2, page.scroll_area)
@@ -1240,6 +1241,13 @@ class RecommendPage(BasePage):
         self.recommend_items = self.load_items_from_json("json_page/recommend.json", selected_language)
         build_big_screen_page(self, self.recommend_items, "recommend", "#FCF3CF", "#FCF3CF")
 
+        # Collect box button references after build_big_screen_page creates them
+        self._box_buttons = []
+        for i in range(self.h_layout.count()):
+            widget = self.h_layout.itemAt(i).widget()
+            if widget:
+                self._box_buttons.append(widget)
+
     def showEvent(self, event):
         super().showEvent(event)
         if hasattr(self, 'current_index'):
@@ -1256,16 +1264,30 @@ class RecommendPage(BasePage):
             "background-color: #FCF3CF; color: #2C4C49; border-radius: 25px; "
             "border: none; padding: 30px;")
 
+    def _highlight_box(self, selected_idx):
+        for i, box in enumerate(self._box_buttons):
+            if i == selected_idx:
+                box.setStyleSheet("""
+                    QPushButton { background-color: #FCF3CF; border: 3px solid #2C4C49; border-radius: 18px; }
+                    QPushButton:pressed { background-color: #FCF3CF; }
+                """)
+            else:
+                box.setStyleSheet("""
+                    QPushButton { background-color: #ffffff; border: 2px solid #FCF3CF; border-radius: 18px; }
+                    QPushButton:pressed { background-color: #FCF3CF; }
+                """)
+
     def on_box_clicked(self, idx):
         self.current_index = idx
+        self._highlight_box(idx)
         self._update_recommend_big_screen(idx)
         self.scroll_area.horizontalScrollBar().setValue(idx * self.total_step)
-        # Recommend page stays on same page — text shown on big screen, no fullscreen needed
 
     def handle_scroll_update(self, value):
         index = round(value / self.total_step)
         if 0 <= index < len(self._items) and index != self.current_index:
             self.current_index = index
+            self._highlight_box(index)
             self._update_recommend_big_screen(index)
 
     def update_big_screen(self, index):
@@ -1275,8 +1297,8 @@ class RecommendPage(BasePage):
         super().update_language(lang_code)
         big_screen_update_language(self, lang_code)
         if hasattr(self, 'current_index'):
+            self._highlight_box(self.current_index)
             self._update_recommend_big_screen(self.current_index)
-
 
 # ==========================================
 # BATHROOM PAGE (index 5)
