@@ -9,73 +9,33 @@ from PyQt6.QtGui import QFont, QPixmap, QColor, QPainter, QPainterPath
 from PyQt6.QtCore import Qt, QDate, QTimer, QTime, QUrl, QRectF, QPropertyAnimation, QEasingCurve
 from PyQt6.QtMultimedia import QSoundEffect
 
+import json
+
 # ==========================================
 # HARDCODED TRANSLATION DICTIONARY
 # ==========================================
-THAI_TRANSLATIONS = {
-    "MY DAILY WELL-BEING": "ความเป็นอยู่ที่ดีของฉัน",
-    "FOOD": "อาหาร",
-    "Request food or specify meal type.": "ขออาหารหรือระบุเมนู",
-    "FEELING": "ความรู้สึก",
-    "Describe current mood and emotion.": "บอกความรู้สึกของคุณ",
-    "POSITION & COMFORT": "ตำแหน่งและความสะดวก",
-    "Adjust my bed or change my position.": "ปรับเตียงหรือเปลี่ยนท่าทางให้หน่อย",
-    "BATHROOM": "ห้องน้ำ",
-    "Request bathroom assistance.": "ขอความช่วยเหลือห้องน้ำ",
-    "YES / NO": "ใช่ / ไม่ใช่",
-    "Confirmatory responses for staff.": "ตอบตกลงหรือปฏิเสธ",
-    "ENTERTAINMENT": "ความบันเทิง",
-    "Request leisure activity or TV.": "ขอความบันเทิง",
-    "RECOMMEND ANSWER": "แนะนำคำตอบ",
-    "Suggestion from staff or system.": "แนะนำโดยระบบ",
-    "CLOCK": "นาฬิกา",
-    "Check the time or daily schedule.": "เช็คเวลาหรือตาราง",
-    "CALL FOR HELP": "ขอความช่วยเหลือ",
-    "Press to alert a staff member immediately.": "กดเพื่อแจ้งเจ้าหน้าที่ทันที",
-    "CALL NOW": "เรียกเลย",
-    "TALK WITH US": "พูดคุยกับเรา",
-    "FOOD MENU": "เมนูอาหาร",
-    "FEELING & MOOD": "ความรู้สึกและอารมณ์",
-    "BATHROOM ASSISTANCE": "ความช่วยเหลือห้องน้ำ",
-    "RECOMMENDATIONS": "คำแนะนำ",
-    "Go Back": "ย้อนกลับ",
-    "TOILET": "เข้าห้องน้ำ",
-    "I need to use the toilet.": "ฉันต้องการเข้าห้องน้ำ",
-    "SHOWER": "อาบน้ำ",
-    "I would like to take a shower.": "ฉันต้องการอาบน้ำ",
-    "WASH": "ล้างหน้า/ล้างมือ",
-    "I need to wash my hands/face.": "ฉันต้องการล้างหน้าและมือ",
-    "CLOTHES": "เปลี่ยนเสื้อผ้า",
-    "I need help changing clothes.": "ฉันต้องการเปลี่ยนเสื้อผ้า",
-    "TEETH": "เปลี่ยนผ้าอ้อม",
-    "I need to change the diaper.": "ฉันต้องการเปลี่ยนผ้าอ้อม",
-    "GROOMING": "จัดแต่งทรงผม",
-    "I need help with hair or shaving.": "ฉันต้องการความช่วยเหลือเรื่องทรงผมหรือโกนหนวด",
-    "CHOOSE ANSWER": "เลือกคำตอบ",
-    "YES": "ใช่",
-    "NO": "ไม่ใช่",
-    "CONFIRM": "ยืนยัน",
-    "CLOCK SETTINGS": "ตั้งค่าเวลา",
-    "ALARM": "นาฬิกาปลุก",
-    "TIMER": "จับเวลา",
-    "Tap arrows to set alarm": "แตะลูกศรเพื่อตั้งปลุก",
-    "Tap arrows to set duration": "แตะลูกศรเพื่อตั้งเวลา",
-    "SET ALARM": "ตั้งปลุก",
-    "START TIMER": "เริ่มจับเวลา",
-    "CANCEL": "ยกเลิก",
-    "Alarm scheduled": "ตั้งนาฬิกาปลุกแล้ว",
-    "Rings once — tap bell to dismiss": "ดังครั้งเดียว — แตะกระดิ่งเพื่อปิด",
-    "Edit time": "แก้ไขเวลา",
-    "Cancel alarm": "ยกเลิกการปลุก",
-    "SELECT": "เลือก",
-}
+DICT_OF_TRANSLATION_FILENAME = 'json_page/translation.json'
+CARD_DATA_FILENAME = 'json_page/cards.json'
+PLACEHOLDER_FILENAME = 'json_page/placeholder.json'
+GREETING_QUOTE = "Good morning, Mr. K.D 👋"
+GREETING_SUBQUOTE = "Welcome to your daily well-being check-in"
+GREETING_QUESTION = "How are you feeling today?"
+
+
+selected_language = 'th'
+with open(DICT_OF_TRANSLATION_FILENAME, 'r', encoding='utf-8') as f:
+    temp = json.load(f)
+translations_dict = {item["language"]: item["data"] for item in temp}
+
+with open(PLACEHOLDER_FILENAME, 'r', encoding='utf-8') as f:
+    emoji_map = json.load(f)[0]['emoji_map']
+
+
 
 def translate(text, lang_code):
     if not text:
         return ""
-    if lang_code == "en":
-        return text
-    return THAI_TRANSLATIONS.get(text, text)
+    return translations_dict[lang_code].get(text, text)
 
 # ==========================================
 # COMMBOX
@@ -137,18 +97,18 @@ class CommBox(QFrame):
             self.bell_display.setFont(QFont("Arial", 50))
 
         text_v_layout = QVBoxLayout()
-        self.bell_title_label = QLabel("CALL FOR HELP")
+        self.bell_title_label = QLabel(translate("CALL FOR HELP", selected_language))
         self.bell_title_label.setFont(QFont("Arial", 22, QFont.Weight.Bold))
         self.bell_title_label.setStyleSheet("color: #8B4513; background: transparent;")
 
-        self.bell_desc_label = QLabel("Press to alert a staff member immediately.")
+        self.bell_desc_label = QLabel(translate("PRESS TO ALERT A STAFF MEMBER IMMEDIATELY.", selected_language))
         self.bell_desc_label.setFont(QFont("Arial", 16))
         self.bell_desc_label.setStyleSheet("color: #555; background: transparent;")
 
         text_v_layout.addWidget(self.bell_title_label)
         text_v_layout.addWidget(self.bell_desc_label)
 
-        self.call_now_btn_label = QLabel("CALL NOW")
+        self.call_now_btn_label = QLabel(translate("CALL NOW", selected_language))
         self.call_now_btn_label.setFixedSize(180, 60)
         self.call_now_btn_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.call_now_btn_label.setStyleSheet(
@@ -198,11 +158,6 @@ class CommBox(QFrame):
                 self.media_display.setPixmap(pixmap.scaled(140, 90, Qt.AspectRatioMode.KeepAspectRatio,
                                                             Qt.TransformationMode.SmoothTransformation))
             else:
-                emoji_map = {
-                    "TOILET": "🚽", "SHOWER": "🚿", "WASH": "🧼", "CLOTHES": "👕",
-                    "FOOD": "🥪", "FEELING": "😊", "POSITION & COMFORT": "💪",
-                    "ENTERTAINMENT": "📺", "YES / NO": "✅", "RECOMMEND ANSWER": "💡", "CLOCK": "⏰"
-                }
                 self.media_display.setText(emoji_map.get(title, "✨"))
                 self.media_display.setFont(QFont("Arial", 70 if self.large_text else 40))
             top_layout.addWidget(self.media_display)
@@ -223,7 +178,7 @@ class CommBox(QFrame):
         bottom_layout.addStretch(1)
 
         if self.show_btn:
-            self.btn = QPushButton("TALK WITH US")
+            self.btn = QPushButton(translate("TALK WITH US", selected_language))
             self.btn.setFixedHeight(45)
             self.btn.setStyleSheet(
                 "QPushButton { background-color: #4D908E; color: white; border-radius: 12px; font-weight: bold; border: none; }")
@@ -289,7 +244,7 @@ class CommBox(QFrame):
             if hasattr(self, 'bell_title_label'):
                 self.bell_title_label.setText(translate("CALL FOR HELP", lang_code))
             if hasattr(self, 'bell_desc_label'):
-                self.bell_desc_label.setText(translate("Press to alert a staff member immediately.", lang_code))
+                self.bell_desc_label.setText(translate("PRESS TO ALERT A STAFF MEMBER IMMEDIATELY.", lang_code))
             if hasattr(self, 'call_now_btn_label'):
                 self.call_now_btn_label.setText(translate("CALL NOW", lang_code))
 
@@ -349,7 +304,7 @@ class FullScreenItemPage(QFrame):
         self.name_label.setWordWrap(True)
         self.name_label.setStyleSheet("color: #2C4C49; background: transparent; border: none;")
 
-        self.select_btn = QPushButton("SELECT ✓")
+        self.select_btn = QPushButton("SELECT")
         self.select_btn.setFixedSize(180, 70)
         self.select_btn.setStyleSheet("""
             QPushButton { background-color: #4D908E; color: white; border-radius: 35px;
@@ -425,8 +380,8 @@ class FullScreenItemPage(QFrame):
         QTimer.singleShot(400, lambda: self.app.stack.setCurrentIndex(self._back_index))
 
     def update_language(self, lang_code):
-        self.back_btn.setText(translate("Go Back", lang_code))
-        self.select_btn.setText(translate("SELECT", lang_code) + " ✓")
+        self.back_btn.setText(translate("GO BACK", lang_code))
+        self.select_btn.setText(translate("SELECT", lang_code))
 
 
 # ==========================================
@@ -448,12 +403,14 @@ class WelcomePage(QFrame):
         g_layout = QVBoxLayout(self.greeting_frame)
         g_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        self.name_label = QLabel("Good morning, Mr. K.D 👋")
+        
+
+        self.name_label = QLabel(GREETING_QUOTE)
         self.name_label.setFont(QFont("Arial", 36, QFont.Weight.Bold))
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.name_label.setStyleSheet("color: #2C4C49; border: none;")
 
-        self.sub_label = QLabel("Welcome to your daily well-being check-in")
+        self.sub_label = QLabel(GREETING_SUBQUOTE)
         self.sub_label.setFont(QFont("Arial", 20))
         self.sub_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.sub_label.setStyleSheet("color: #4D908E; border: none;")
@@ -475,7 +432,7 @@ class WelcomePage(QFrame):
         self.timer_status.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.timer_status.setFont(QFont("Arial", 16, QFont.Weight.Bold))
 
-        self.cancel_timer_btn = QPushButton("✕ Cancel Timer")
+        self.cancel_timer_btn = QPushButton("Cancel Timer")
         self.cancel_timer_btn.setFixedSize(200, 40)
         self.cancel_timer_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_timer_btn.setStyleSheet("""
@@ -496,7 +453,7 @@ class WelcomePage(QFrame):
         main.addWidget(self.status_container, alignment=Qt.AlignmentFlag.AlignCenter)
         main.addSpacing(10)
 
-        self.question_label = QLabel("How are you feeling today?")
+        self.question_label = QLabel(GREETING_QUESTION)
         self.question_label.setFont(QFont("Arial", 28, QFont.Weight.Bold))
         self.question_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.question_label.setStyleSheet("color: #2C4C49; border: none;")
@@ -556,7 +513,7 @@ class WelcomePage(QFrame):
         main.addWidget(self.reply_label)
         main.addSpacing(20)
 
-        self.continue_btn = QPushButton("Continue to Menu ➜")
+        self.continue_btn = QPushButton("Continue to Menu")
         self.continue_btn.setFixedSize(320, 70)
         self.continue_btn.setFont(QFont("Arial", 20, QFont.Weight.Bold))
         self.continue_btn.setStyleSheet("""
@@ -594,7 +551,7 @@ class WelcomePage(QFrame):
         text_block = QVBoxLayout()
         text_block.setSpacing(2)
 
-        self.alarm_scheduled_label = QLabel("Alarm scheduled")
+        self.alarm_scheduled_label = QLabel(translate("ALARM SCHEDULED", selected_language))
         self.alarm_scheduled_label.setFont(QFont("Arial", 13))
         self.alarm_scheduled_label.setStyleSheet("color: #8B6914; border: none; background: transparent;")
 
@@ -602,7 +559,7 @@ class WelcomePage(QFrame):
         self.alarm_status.setFont(QFont("Arial", 32, QFont.Weight.Bold))
         self.alarm_status.setStyleSheet("color: #5C3D0E; border: none; background: transparent;")
 
-        self.alarm_sub_label = QLabel("Rings once — tap bell to dismiss")
+        self.alarm_sub_label = QLabel(translate("RINGS ONCE — TAP BELL TO DISMISS", selected_language))
         self.alarm_sub_label.setFont(QFont("Arial", 12))
         self.alarm_sub_label.setStyleSheet("color: #A07830; border: none; background: transparent;")
 
@@ -614,7 +571,7 @@ class WelcomePage(QFrame):
         btn_block = QVBoxLayout()
         btn_block.setSpacing(8)
 
-        self.change_time_btn = QPushButton("Edit time")
+        self.change_time_btn = QPushButton(translate("EDIT TIME", selected_language))
         self.change_time_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.change_time_btn.setFixedSize(140, 44)
         self.change_time_btn.setStyleSheet("""
@@ -624,7 +581,7 @@ class WelcomePage(QFrame):
         """)
         self.change_time_btn.clicked.connect(lambda: self.app.stack.setCurrentIndex(9))
 
-        self.cancel_alarm_btn = QPushButton("Cancel alarm")
+        self.cancel_alarm_btn = QPushButton(translate("CANCEL ALARM", selected_language))
         self.cancel_alarm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.cancel_alarm_btn.setFixedSize(140, 44)
         self.cancel_alarm_btn.setStyleSheet("""
@@ -710,10 +667,10 @@ class WelcomePage(QFrame):
             QTimer.singleShot(1000, lambda: self.app.stack.setCurrentIndex(1))
 
     def update_language(self, lang_code):
-        self.alarm_scheduled_label.setText(translate("Alarm scheduled", lang_code))
-        self.alarm_sub_label.setText(translate("Rings once — tap bell to dismiss", lang_code))
-        self.change_time_btn.setText(translate("Edit time", lang_code))
-        self.cancel_alarm_btn.setText(translate("Cancel alarm", lang_code))
+        self.alarm_scheduled_label.setText(translate("ALARM SCHEDULED", lang_code))
+        self.alarm_sub_label.setText(translate("RINGS ONCE — TAP BELL TO DISMISS", lang_code))
+        self.change_time_btn.setText(translate("EDIT TIME", lang_code))
+        self.cancel_alarm_btn.setText(translate("CANCEL ALARM", lang_code))
 
 
 # ==========================================
@@ -725,7 +682,7 @@ class MainMenuPage(QFrame):
         self.app = app
         self.setStyleSheet("background-color: #F0F8F7;")
         self.main_layout = QVBoxLayout(self)
-
+        self.file_path = "json_page/cards.json"
         self.header_container = QFrame()
         self.header_container.setFixedHeight(120)
         self.header_container.setStyleSheet("background-color: #8FC8C2; border: none;")
@@ -767,19 +724,8 @@ class MainMenuPage(QFrame):
         self.grid = QGridLayout()
         self.grid.setContentsMargins(25, 10, 25, 10)
         self.grid.setSpacing(20)
-
-        self.card_data = [
-            ("FOOD",             "Request food or specify meal type.",     "#AED6F1", "assets/food.png",          0, 0),
-            ("FEELING",          "Describe current mood and emotion.",     "#F9E79F", "assets/feeling.png",       0, 1),
-            ("POSITION & COMFORT",         "Adjust my bed or change my position.",           "#D6EAF8", "assets/position.png",      0, 2),
-            ("BATHROOM",         "Request bathroom assistance.",           "#D1F2EB", "assets/bathroom.png",      0, 3),
-            ("YES / NO",         "Confirmatory responses for staff.",      "#FADBD8", "assets/yes_no.png",        1, 0),
-            ("ENTERTAINMENT",    "Request leisure activity or TV.",        "#D5F5E3", "assets/entertainment.png", 1, 1),
-            ("RECOMMEND ANSWER", "Suggestion from staff or system.",       "#FCF3CF", "assets/recommend.png",     1, 2),
-            ("CLOCK",            "Check the time or daily schedule.",      "#E8DAEF", "assets/clock.png",         1, 3),
-        ]
-
         self.cards = []
+        self.card_data = self.load_cards_from_json()
         for title, desc, col, img, r, c in self.card_data:
             card = CommBox(title=title, description=desc, bg_color=col,
                            media_file=img, callback=self.navigate)
@@ -792,6 +738,31 @@ class MainMenuPage(QFrame):
 
         self.main_layout.addLayout(self.grid)
 
+    def load_cards_from_json(self):
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+                # Converts each dictionary back into a tuple of values
+                card_data = [
+                    (
+                        item['title'], 
+                        item['description'], 
+                        item['color'], 
+                        item['image'], 
+                        item['row'], 
+                        item['column']
+                    ) 
+                    for item in data
+                ]
+        except FileNotFoundError:
+            print(f"Error: {self.file_path} not found.")
+            self.card_data = []
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            self.card_data = []
+        return card_data
+
     def toggle_language(self):
         if self.lang_btn.text() == "ENGLISH":
             self.lang_btn.setText("THAI / ไทย")
@@ -802,8 +773,13 @@ class MainMenuPage(QFrame):
 
     def navigate(self, title):
         pages = {
-            "FOOD": 2, "FEELING": 3, "POSITION & COMFORT": 4, "BATHROOM": 5,
-            "YES / NO": 6, "ENTERTAINMENT": 7, "RECOMMEND ANSWER": 8
+            "FOOD": 2,
+            "FEELING": 3,
+            "POSITION & COMFORT": 4,
+            "BATHROOM": 5,
+            "YES / NO": 6,
+            "ENTERTAINMENT": 7,
+            "RECOMMEND ANSWER": 8
         }
         if title in pages:
             self.app.stack.setCurrentIndex(pages[title])
@@ -833,24 +809,41 @@ class BasePage(QFrame):
         self.original_title = title
         self.setStyleSheet("background-color: #F0F8F7;")
         layout = QVBoxLayout(self)
+
         self.header = QLabel(title)
         self.header.setFont(QFont("Arial", 32, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header.setStyleSheet("color: #2C4C49;")
         layout.addWidget(self.header)
         layout.addStretch()
-        self.back_btn = QPushButton("Go Back")
+
+        self.back_btn = QPushButton(translate("GO BACK", selected_language))
         self.back_btn.setFixedSize(200, 60)
         self.back_btn.setStyleSheet(
             "background-color: #BDBDBD; color: white; border-radius: 15px; "
             "font-weight: bold; font-size: 20px; border: none;")
         self.back_btn.clicked.connect(lambda: self.app.stack.setCurrentIndex(1))
+        
         layout.addWidget(self.back_btn, alignment=Qt.AlignmentFlag.AlignCenter)
         self.page_layout = layout
+    
+    def load_items_from_json(self, file_path, selected_language):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                temp = json.load(f)
+                returned_list = {item["language"]: item["data"] for item in temp}[selected_language]
+
+        except FileNotFoundError:
+            print("Error: File not found.")
+            returned_list = []
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            returned_list = []
+        return returned_list
 
     def update_language(self, lang_code):
         self.header.setText(translate(self.original_title, lang_code))
-        self.back_btn.setText(translate("Go Back", lang_code))
+        self.back_btn.setText(translate("GO BACK", lang_code))
 
 
 # ==========================================
@@ -959,12 +952,6 @@ def update_big_screen_shared(page, index):
 
 def open_fullscreen_for_page(page, idx, back_page_index):
     """Helper: push the full-screen item page for any big-screen page."""
-    emoji_map = {
-        "food":          "🍽️",
-        "feeling":       "😊",
-        "entertainment": "📺",
-        "recommend":     "💡",
-    }
     emoji = emoji_map.get(page._image_prefix, "✨")
     page.app.fullscreen_item_page.show_item(
         item_name=page._items[idx],
@@ -976,50 +963,15 @@ def open_fullscreen_for_page(page, idx, back_page_index):
     )
     page.app.stack.setCurrentIndex(11)
 
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
 # ==========================================
 # FOOD PAGE (index 2)
 # ==========================================
 class FoodPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "FOOD MENU")
-        self.menu_items = [
-            "Pad Kra Pao (Basil Stir-Fry)",
-    "Gai Pad Med Mamuang (Cashew Chicken)",
-    "Pad Kana Moo Krob (Crispy Pork Belly with Chinese Broccoli)",
-    "Pad Prik King (Dry Red Curry Stir-Fry)",
-    "Pad Pak Ruam (Mixed Vegetable Stir-Fry)",
-    "Moo Ping (Grilled Pork Skewers)",
-    "Tod Mun Pla (Thai Fish Cakes)",
-    "Gaeng Keow Wan (Green Curry)",
-    "Gaeng Daeng (Red Curry)",
-    "Gaeng Massaman (Massaman Curry)",
-    "Gaeng Panang (Panang Curry)",
-    "Gaeng Som (Sour Curry)",
-    "Gaeng Phed Ped Yang (Roast Duck Red Curry)",
-    "Pad Thai",
-    "Pad See Ew (Stir-Fried Wide Noodles)",
-    "Pad Kee Mao (Drunken Noodles)",
-    "Khao Pad (Thai Fried Rice)",
-    "Khao Pad Sapparod (Pineapple Fried Rice)",
-    "Khao Man Gai (Hainanese Chicken Rice)",
-    "Khao Kha Moo (Braised Pork Leg on Rice)",
-    "Khao Soi (Northern Thai Coconut Curry Noodle Soup)",
-    "Tom Yum Goong (Spicy and Sour Shrimp Soup)",
-    "Tom Kha Gai (Chicken Coconut Soup)",
-    "Som Tum (Green Papaya Salad)",
-    "Larb (Minced Meat Salad)",
-    "Nam Tok Moo (Grilled Pork Salad)",
-    "Yum Woon Sen (Glass Noodle Salad)",
-    "Poh Pia Tod (Spring Rolls)",
-    "Khao Niao Mamuang (Mango Sticky Rice)",
-    "Roti Gluay (Banana Roti)",
-    "Steak",
-    "Hamburger",
-    "Pizza",
-    "French Fries"
-        ]
-        build_big_screen_page(self, self.menu_items, "food", "#8FC8C2", "#333333")
+        self.file_path = "json_page/food.json"
+        self.menu_items = self.load_items_from_json(self.file_path, selected_language)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -1106,17 +1058,10 @@ class FeelingPage(BasePage):
 class PositionPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "POSITION & COMFORT")
-        self.position_items = ["Adjust Bed",
-    "Pull Me Up",
-    "Support Right Arm",
-    "Turn Me to My Side",
-    "Fix Pillows/Cushions",
-    "Too Hot / Too Cold",
-    "Transfer to Wheelchair",
-    "Transfer to Bed",
-    "Transfer to Commode/Toilet",
-    "Move to Recliner"]
+        self.file_path = "json_page/position.json"
+        self.position_items = self.load_items_from_json(self.file_path, selected_language)
         build_big_screen_page(self, self.position_items, "position", "#D6EAF8", "#D6EAF8")
+
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -1145,15 +1090,8 @@ class PositionPage(BasePage):
 class EntertainmentPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "ENTERTAINMENT")
-        self.entertainment_items = [
-            "ESPN", "ESPN2", "FOX Sports", "NBC Sports", "CBS Sports", "TNT Sports",
-            "Peacock", "beIN Sports", "TrueVisions", "Netflix", "HBO", "Disney Channel", "Disney+",
-            "Cartoon Network", "Nickelodeon", "Comedy Central", "ABC", "NBC", "CBS", "FOX",
-            "The CW", "BBC", "National Geographic", "Discovery Channel", "History Channel",
-            "CNN", "MTV", "GMMTV", "Workpoint TV", "Channel 3 (Ch3)", "Channel 7 (Ch7)",
-            "ONE 31", "Thai PBS", "MCOT HD", "True4U", "Amarin TV", "PPTV HD 36",
-            "YouTube", "Facebook"
-        ]
+        self.file_path = "json_page/entertainment.json"
+        self.entertainment_items = self.load_items_from_json(self.file_path, selected_language)
         build_big_screen_page(self, self.entertainment_items, "entertainment", "#D5F5E3", "#D5F5E3")
 
     def showEvent(self, event):
@@ -1183,27 +1121,7 @@ class EntertainmentPage(BasePage):
 class RecommendPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "RECOMMENDATIONS")
-        self.recommend_items = [
-            "I need my glasses", "I need my hearing aid", "My phone needs charging",
-            "I dropped something", "I need more light", "I need less light",
-            "Please turn off the TV", "Please turn on the fan", "Please turn off the fan",
-            "I need hand sanitizer", "I need tissues", "I need lip balm",
-            "My mouth is dry", "I need to spit", "Please clean my hands",
-            "I need my dentures", "Please remove my dentures",
-            "I want to see my family", "I want to see my friend",
-            "Please ask visitor to leave", "I want more visitors",
-            "Please take my photo", "Please contact my doctor",
-            "I want to speak to a nurse", "I cannot sleep", "I need a sleep aid",
-            "Please be quiet", "The light is bothering me", "I want to nap",
-            "I feel well rested", "I had a bad dream", "I need my night medication",
-            "Please speak slowly", "Please repeat that", "I do not understand",
-            "Please call my family", "I need a pen and paper", "Please write it down",
-            "Please show me a picture", "I want to make a phone call",
-            "I want to send a message", "Please read this to me",
-            "I need an interpreter", "Please be patient with me",
-            "My bed is uncomfortable", "I need my blanket",
-            "Please raise my bed", "Please lower my bed", "I need more pillows"
-        ]
+        self.recommend_items = self.load_items_from_json("json_page/recommend.json", selected_language)
         build_big_screen_page(self, self.recommend_items, "recommend", "#FCF3CF", "#FCF3CF")
 
     def showEvent(self, event):
@@ -1284,10 +1202,6 @@ class BathroomPage(QFrame):
         t, d, c, media_file, r, col = match
 
         # Determine emoji fallback
-        emoji_map = {
-            "TOILET": "🚽", "SHOWER": "🚿", "WASH": "🧼",
-            "CLOTHES": "👕", "TEETH": "🧸", "GROOMING": "💈",
-        }
         emoji = emoji_map.get(t, "✨")
 
         # Build a temporary image prefix by stripping _pic.png/_pic.jpg
