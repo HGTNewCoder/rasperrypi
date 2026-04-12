@@ -33,7 +33,7 @@
       "col": 0
     },
     {
-      "id": "TEETH",
+      "id": "DIAPER",
       "message_key": "I NEED TO CHANGE THE DIAPER.",
       "color": "#F5B7B1",
       "image_path": "assets/diaper_pic.png",
@@ -61,7 +61,7 @@
         "I NEED TO WASH MY HANDS/FACE.": "I need to wash my hands/face.",
         "CLOTHES": "Clothes",
         "I NEED HELP CHANGING CLOTHES.": "I need help changing clothes.",
-        "TEETH": "Teeth",
+        "DIAPER": "Diaper",
         "I NEED TO CHANGE THE DIAPER.": "I need to change the diaper.",
         "GROOMING": "Grooming",
         "I NEED HELP WITH HAIR OR SHAVING.": "I need help with hair or shaving."
@@ -78,7 +78,7 @@
         "I NEED TO WASH MY HANDS/FACE.": "ฉันต้องการล้างหน้าและมือ",
         "CLOTHES": "เปลี่ยนเสื้อผ้า",
         "I NEED HELP CHANGING CLOTHES.": "ฉันต้องการเปลี่ยนเสื้อผ้า",
-        "TEETH": "เปลี่ยนผ้าอ้อม",
+        "DIAPER": "เปลี่ยนผ้าอ้อม",
         "I NEED TO CHANGE THE DIAPER.": "ฉันต้องการเปลี่ยนผ้าอ้อม",
         "GROOMING": "จัดแต่งทรงผม",
         "I NEED HELP WITH HAIR OR SHAVING.": "ฉันต้องการความช่วยเหลือเรื่องทรงผมหรือโกนหนวด"

@@ -1,8 +1,6 @@
 import os
 import time
-import app
 from gpiozero import Button
-from signal import pause
 import subprocess
 from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
 
@@ -12,25 +10,28 @@ BUTTON_GPIO = 17            # Physical Pin 11
 # ---------------------
 
 class PhoneStyleScreenManager:
-    def __init__(self):
-        def __init__(self, app=None): 
-            self.app = app
-        self.button = Button(BUTTON_GPIO, pull_up=True)
+    def __init__(self, app=None):
+        self.app = app
+        try:
+            self.button = Button(BUTTON_GPIO, pull_up=True)
+            self.button.when_pressed = self.toggle_screen
+        except Exception:
+            self.button = None
         self.is_on = True
         self.last_activity = time.time()
-        
-        # Link button press to the toggle function
-        self.button.when_pressed = self.toggle_screen
         
         # Find the backlight device path (Waveshare usually shows as 10-0045 or similar)
         self.bl_path = self._get_backlight_path()
 
     def _get_backlight_path(self):
         base = "/sys/class/backlight/"
-        dirs = os.listdir(base)
-        if dirs:
-            # Returns the first backlight found (usually the DSI screen)
-            return os.path.join(base, dirs[0], "brightness")
+        try:
+            dirs = os.listdir(base)
+            if dirs:
+                # Returns the first backlight found (usually the DSI screen)
+                return os.path.join(base, dirs[0], "brightness")
+        except FileNotFoundError:
+            pass
         return None
 
     def set_backlight(self, state):

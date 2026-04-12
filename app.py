@@ -2,6 +2,7 @@ import sys
 import os
 import queue
 import threading
+import time
 import traceback
 import asyncio
 import tempfile
@@ -670,7 +671,7 @@ class WelcomePage(QFrame):
             QPushButton { background-color: #4D908E; color: white; border-radius: 35px; border: none; }
             QPushButton:pressed { background-color: #3a7a77; }
         """)
-        self.continue_btn.clicked.connect(lambda: self.app.stack.setCurrentIndex(PAGE_MAIN_MENU))
+        self.continue_btn.clicked.connect(self._go_to_menu)
         main.addWidget(self.continue_btn, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self._set_opacity(self.greeting_frame, 0)
@@ -795,6 +796,7 @@ class WelcomePage(QFrame):
             QTimer.singleShot(d, lambda w=widget, dur=duration: self._fade_in(w, dur))
 
     def select_mood(self, frame):
+        self._pending_redirect = False
         replies = {
             "Great":    "You look wonderful today!",
             "Good":     "Glad to hear it!",
@@ -811,13 +813,25 @@ class WelcomePage(QFrame):
         label_key = frame.property("label_key")
         reply_key = replies.get(label_key, "")
         self.reply_label.setText(translate(reply_key, self.current_lang))
+        if hasattr(self.app, 'screen_manager'):
+            self.app.screen_manager.last_activity = time.time()
 
         if label_key == "In pain":
             QTimer.singleShot(1000, lambda: QMessageBox.warning(
                 self, "Alert", "Staff Alerted — patient reports pain!"))
-            QTimer.singleShot(2500, lambda: self.app.stack.setCurrentIndex(PAGE_MAIN_MENU))
+            QTimer.singleShot(2500, lambda: self._redirect_if_not_cancelled(PAGE_MAIN_MENU))
         else:
-            QTimer.singleShot(1000, lambda: self.app.stack.setCurrentIndex(PAGE_MAIN_MENU))
+            QTimer.singleShot(1000, lambda: self._redirect_if_not_cancelled(PAGE_MAIN_MENU))
+    
+    def _redirect_if_not_cancelled(self, page):
+        if not getattr(self, '_pending_redirect', False):
+            self.app.stack.setCurrentIndex(page)
+
+    def _go_to_menu(self):
+        self._pending_redirect = False
+        if hasattr(self.app, 'screen_manager'):
+            self.app.screen_manager.last_activity = time.time()
+        self.app.stack.setCurrentIndex(PAGE_MAIN_MENU)
 
     def update_language(self, lang_code):
         self.current_lang = lang_code
@@ -1433,7 +1447,7 @@ class BathroomPage(QFrame):
                            show_btn=False, add_shadow=True, use_picture=True,
                            hide_title=True, callback=self.handle_bathroom_selection)
             if hasattr(card, 'desc_label'):
-                card.desc_label.setText(self._bathroom_translate(d, initial_lang))
+                card.desc_label.setText(self._bathroom_translate(t, initial_lang))
             self.cards.append(card)
             grid.addWidget(card, r, col)
 
@@ -1504,11 +1518,11 @@ class BathroomPage(QFrame):
 
         emoji = emoji_map.get(t, "")
         lang = getattr(self.app, '_current_lang', 'en')
-        primary_text = self._bathroom_translate(t, lang)
+        primary_text = self._bathroom_translate(d, lang)
         fallback_text = None
         fallback_lang = None
         if lang == 'th':
-            fallback_text = translate(t, 'en')
+            fallback_text = translate(d, 'en')
             fallback_lang = 'en'
         self.app.speak_label(
             primary_text,
@@ -1913,6 +1927,7 @@ class WellBeingApp(QWidget):
         self.sound_effect.setLoopCount(10)
         if os.path.exists("assets/alarm.wav"):
             self.sound_effect.setSource(QUrl.fromLocalFile(os.path.abspath("assets/alarm.wav")))
+        self.setAttribute(Qt.WidgetAttribute.WA_AcceptTouchEvents, True)
 
         self.core_timer = QTimer(self)
         self.core_timer.timeout.connect(self.process_time_events)
@@ -1966,6 +1981,18 @@ class WellBeingApp(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.stack)
+
+    def mousePressEvent(self, event):
+        if hasattr(self, 'screen_manager'):
+            if self.screen_manager.is_on:
+                self.screen_manager.last_activity = time.time()
+        super().mousePressEvent(event)
+
+    def touchEvent(self, event):
+        if hasattr(self, 'screen_manager'):
+            if self.screen_manager.is_on:
+                self.screen_manager.last_activity = time.time()
+        super().touchEvent(event)
 
     def process_time_events(self):
         now_str = QTime.currentTime().toString("HH:mm")
@@ -2069,6 +2096,8 @@ if __name__ == "__main__":
     window.showFullScreen()
     window.show()
     manager = PhoneStyleScreenManager(app=window)
+    window.screen_manager = manager
+    manager.last_activity = time.time()
     t = threading.Thread(target=manager.monitor, daemon=True)
     t.start()
     sys.exit(app.exec())
