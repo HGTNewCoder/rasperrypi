@@ -2065,6 +2065,6 @@ def _show_bathroom_item(self, item_name, description, media_file, bg_color, emoj
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     window = WellBeingApp()
-    window.setFixedSize(1289, 800)
+    window.showFullScreen()
     window.show()
     sys.exit(app.exec())
