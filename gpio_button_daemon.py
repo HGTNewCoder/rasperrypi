@@ -1,8 +1,10 @@
 import os
 import time
+import app
 from gpiozero import Button
 from signal import pause
 import subprocess
+from PyQt6.QtCore import QMetaObject, Qt, Q_ARG
 
 # --- CONFIGURATION ---
 IDLE_TIMEOUT_SECONDS = 300  # 5 minutes (300 seconds)
@@ -11,7 +13,8 @@ BUTTON_GPIO = 17            # Physical Pin 11
 
 class PhoneStyleScreenManager:
     def __init__(self):
-        # Initialize button with internal Pull-Up resistor enabled
+        def __init__(self, app=None): 
+            self.app = app
         self.button = Button(BUTTON_GPIO, pull_up=True)
         self.is_on = True
         self.last_activity = time.time()
@@ -46,13 +49,31 @@ class PhoneStyleScreenManager:
     def toggle_screen(self):
         print("Button pressed!")
         self.last_activity = time.time()
-        self.set_backlight(not self.is_on)
+        if self.is_on:
+            QMetaObject.invokeMethod(
+                self.app.stack,
+                "setCurrentIndex",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(int, 0)
+            )
+            time.sleep(0.1)
+            self.set_backlight(False)
+        else:
+        
+            self.set_backlight(True)
 
     def monitor(self):
         while True:
             # Sleep if idle for too long
             if self.is_on and (time.time() - self.last_activity > IDLE_TIMEOUT_SECONDS):
                 print("Idle timeout reached.")
+                QMetaObject.invokeMethod(
+                    self.app.stack,
+                    "setCurrentIndex",
+                    Qt.ConnectionType.QueuedConnection,
+                    Q_ARG(int, 0)
+                )
+                time.sleep(0.1)
                 self.set_backlight(False)
             
             time.sleep(1)

@@ -15,6 +15,7 @@ from PyQt6.QtCore import Qt, QDate, QTimer, QTime, QUrl, QRectF, QPropertyAnimat
 from PyQt6.QtMultimedia import QSoundEffect
 import pygame
 import edge_tts
+from gpio_button_daemon import PhoneStyleScreenManager
 
 import json
 
@@ -1385,16 +1386,9 @@ class RecommendPage(BasePage):
                 fallback_text=fallback_text,
                 fallback_lang_code=fallback_lang,
             )
-        hbar = self.scroll_area.horizontalScrollBar()
-        if hbar is not None:
-            hbar.setValue(idx * self.total_step)
 
     def handle_scroll_update(self, value):
-        index = round(value / self.total_step)
-        if 0 <= index < len(self._items) and index != self.current_index:
-            self.current_index = index
-            self._highlight_box(index)
-            self._update_recommend_big_screen(index)
+        pass
 
     def update_big_screen(self, index):
         self._update_recommend_big_screen(index)
@@ -2074,4 +2068,7 @@ if __name__ == "__main__":
     window = WellBeingApp()
     window.showFullScreen()
     window.show()
+    manager = PhoneStyleScreenManager(app=window)
+    t = threading.Thread(target=manager.monitor, daemon=True)
+    t.start()
     sys.exit(app.exec())
