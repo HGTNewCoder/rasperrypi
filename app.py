@@ -614,7 +614,7 @@ class WelcomePage(QFrame):
         self.mood_buttons = []
         self.mood_text_labels = []
 
-        for emoji, label, bg, fg in self.mood_data:
+        for image_path, label, bg, fg in self.mood_data:
             btn_frame = QFrame()
             btn_frame.setStyleSheet(
                 "background-color: white; border: 2px solid #8FC8C2; border-radius: 20px;")
@@ -624,8 +624,15 @@ class WelcomePage(QFrame):
             bv = QVBoxLayout(btn_frame)
             bv.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            e_lbl = QLabel(emoji)
-            e_lbl.setFont(QFont("Arial", 42))
+            e_lbl = QLabel("")
+            pixmap = QPixmap(image_path)
+            if not pixmap.isNull():
+                e_lbl.setPixmap(
+                    pixmap.scaled(56, 56, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                )
+            else:
+                e_lbl.setText(label[:1])
+                e_lbl.setFont(QFont("Arial", 28, QFont.Weight.Bold))
             e_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             e_lbl.setStyleSheet("border: none; background: transparent;")
 
