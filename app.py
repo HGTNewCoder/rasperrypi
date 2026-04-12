@@ -24,7 +24,7 @@ import json
 DICT_OF_TRANSLATION_FILENAME = 'json_page/translation.json'
 CARD_DATA_FILENAME = 'json_page/cards.json'
 PLACEHOLDER_FILENAME = 'json_page/placeholder.json'
-GREETING_QUOTE = "Good morning, Mr. K.D 👋"
+GREETING_QUOTE = "Good morning, Mr. K.D"
 GREETING_SUBQUOTE = "Welcome to your daily well-being check-in"
 GREETING_QUESTION = "How are you feeling today?"
 
@@ -56,10 +56,7 @@ def translate(text, lang_code):
     if not text:
         return ""
     lang_map = translations_dict.get(lang_code, {})
-    normalized = text
-    for ch in ("👋", "😊", "💚", "🤝", "🔔", "➜"):
-        normalized = normalized.replace(ch, "")
-    normalized = " ".join(normalized.split())
+    normalized = " ".join(text.split())
     return lang_map.get(text, lang_map.get(text.upper(), lang_map.get(normalized.upper(), text)))
 
 
@@ -232,7 +229,7 @@ class CommBox(QFrame):
             self.bell_display.setPixmap(pixmap.scaled(80, 80, Qt.AspectRatioMode.KeepAspectRatio,
                                                        Qt.TransformationMode.SmoothTransformation))
         else:
-            self.bell_display.setText("🔔")
+            self.bell_display.setText("")
             self.bell_display.setFont(QFont("Arial", 50))
 
         text_v_layout = QVBoxLayout()
@@ -298,7 +295,7 @@ class CommBox(QFrame):
                 self.media_display.setPixmap(pixmap.scaled(140, 90, Qt.AspectRatioMode.KeepAspectRatio,
                                                             Qt.TransformationMode.SmoothTransformation))
             else:
-                self.media_display.setText(emoji_map.get(title, "✨"))
+                self.media_display.setText(emoji_map.get(title, ""))
                 self.media_display.setFont(QFont("Arial", 70 if self.large_text else 40))
             top_layout.addWidget(self.media_display)
 
@@ -410,7 +407,7 @@ class FullScreenItemPage(QFrame):
         self._item_index = 0
         self._item_name = ""
         self._bg_fallback = "#E8F8F5"
-        self._emoji_fallback = "✨"
+        self._emoji_fallback = ""
         self.setStyleSheet("background-color: #E8F8F5;")
 
         layout = QVBoxLayout(self)
@@ -608,11 +605,11 @@ class WelcomePage(QFrame):
         moods_h.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.mood_data = [
-            ("😄", "Great",     "#D5F5E3", "#4D908E"),
-            ("🙂", "Good",      "#AED6F1", "#2471A3"),
-            ("😐", "Okay",      "#F9E79F", "#B7950B"),
-            ("😔", "Not great", "#FADBD8", "#A93226"),
-            ("😣", "In pain",   "#EBDEF0", "#76448A"),
+            ("", "Great",     "#D5F5E3", "#4D908E"),
+            ("", "Good",      "#AED6F1", "#2471A3"),
+            ("", "Okay",      "#F9E79F", "#B7950B"),
+            ("", "Not great", "#FADBD8", "#A93226"),
+            ("", "In pain",   "#EBDEF0", "#76448A"),
         ]
         self.mood_buttons = []
         self.mood_text_labels = []
@@ -686,7 +683,7 @@ class WelcomePage(QFrame):
         alarm_outer.setContentsMargins(16, 12, 16, 12)
         alarm_outer.setSpacing(16)
 
-        icon_label = QLabel("🔔")
+        icon_label = QLabel("")
         icon_label.setFont(QFont("Arial", 32))
         icon_label.setStyleSheet("border: none; background: transparent;")
         icon_label.setFixedSize(60, 60)
@@ -791,11 +788,11 @@ class WelcomePage(QFrame):
 
     def select_mood(self, frame):
         replies = {
-            "Great":    "You look wonderful today! 😊",
-            "Good":     "Glad to hear it! 😊",
-            "Okay":     "We are here for you. 💚",
-            "Not great":"Let us help you feel better. 🤝",
-            "In pain":  "Staff will be notified right away. 🔔",
+            "Great":    "You look wonderful today!",
+            "Good":     "Glad to hear it!",
+            "Okay":     "We are here for you.",
+            "Not great":"Let us help you feel better.",
+            "In pain":  "Staff will be notified right away.",
         }
         for mb in self.mood_buttons:
             mb.setStyleSheet(
@@ -816,11 +813,11 @@ class WelcomePage(QFrame):
 
     def update_language(self, lang_code):
         self.current_lang = lang_code
-        self.name_label.setText(translate("Good morning, Mr. K.D 👋", lang_code))
+        self.name_label.setText(translate("Good morning, Mr. K.D", lang_code))
         self.sub_label.setText(translate("Welcome to your daily well-being check-in", lang_code))
         self.question_label.setText(translate("How are you feeling today?", lang_code))
-        self.continue_btn.setText(translate("Continue to Menu ➜", lang_code))
-        self.cancel_timer_btn.setText("✕ " + translate("Cancel Timer", lang_code))
+        self.continue_btn.setText(translate("Continue to Menu", lang_code))
+        self.cancel_timer_btn.setText(translate("Cancel Timer", lang_code))
         for btn_frame in self.mood_buttons:
             text_lbl = btn_frame.property("text_label")
             label_key = btn_frame.property("label_key")
@@ -1142,7 +1139,7 @@ def update_big_screen_shared(page, index):
 
 
 def open_fullscreen_for_page(page, idx, back_page_index):
-    emoji = emoji_map.get(page._image_prefix, "✨")
+    emoji = emoji_map.get(page._image_prefix, "")
     display_name = page._items[idx]
     page.app.fullscreen_item_page.show_item(
         item_name=display_name,
@@ -1504,7 +1501,7 @@ class BathroomPage(QFrame):
             return
         t, d, c, media_file, r, col = match
 
-        emoji = emoji_map.get(t, "✨")
+        emoji = emoji_map.get(t, "")
         lang = getattr(self.app, '_current_lang', 'en')
         primary_text = self._bathroom_translate(t, lang)
         fallback_text = None
@@ -1595,7 +1592,7 @@ class YesNoPage(QFrame):
             lbl_icon.setPixmap(QPixmap(icon).scaled(400, 400, Qt.AspectRatioMode.KeepAspectRatio,
                                                      Qt.TransformationMode.SmoothTransformation))
         else:
-            lbl_icon.setText("✅" if title == "YES" else "❌")
+            lbl_icon.setText("")
             lbl_icon.setFont(QFont("Arial", 150))
         lbl_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         v.addWidget(lbl_icon)
@@ -1644,7 +1641,7 @@ class YesNoPage(QFrame):
                                              Qt.TransformationMode.SmoothTransformation)
             self.result_icon.setPixmap(pix)
         else:
-            self.result_icon.setText("✅" if choice == "YES" else "❌")
+            self.result_icon.setText("")
             self.result_icon.setFont(QFont("Arial", 200))
 
         self.result_icon.show()
@@ -1846,7 +1843,7 @@ class AlertPage(QFrame):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(40)
 
-        self.icon_label = QLabel("⏰")
+        self.icon_label = QLabel("")
         self.icon_label.setFont(QFont("Arial", 120))
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.icon_label.setStyleSheet("background: transparent; border: none;")
@@ -1875,7 +1872,7 @@ class AlertPage(QFrame):
         self.message_label.setText(translate(message, lang_code))
         if is_emergency:
             self.setStyleSheet("background-color: #FADBD8;")
-            self.icon_label.setText("🚨")
+            self.icon_label.setText("")
             self.message_label.setStyleSheet("color: #C0392B; background: transparent; border: none;")
             self.stop_btn.setStyleSheet("""
                 QPushButton { background-color: #C0392B; color: white; border-radius: 75px;
@@ -1884,7 +1881,7 @@ class AlertPage(QFrame):
             """)
         else:
             self.setStyleSheet("background-color: #FEF3E2;")
-            self.icon_label.setText("⏰")
+            self.icon_label.setText("")
             self.message_label.setStyleSheet("color: #D4A84B; background: transparent; border: none;")
             self.stop_btn.setStyleSheet("""
                 QPushButton { background-color: #E8A838; color: white; border-radius: 75px;
@@ -1982,7 +1979,7 @@ class WellBeingApp(QWidget):
         if self.timer_seconds_remaining > 0:
             self.timer_seconds_remaining -= 1
             m, s = divmod(self.timer_seconds_remaining, 60)
-            self.welcome_page.timer_status.setText(f"⏳ Timer: {m:02d}:{s:02d} remaining")
+            self.welcome_page.timer_status.setText(f"Timer: {m:02d}:{s:02d} remaining")
             self.welcome_page.timer_status.setStyleSheet(
                 "color: white; background-color: #E67E22; border-radius: 10px; padding: 5px; border: none;")
             self.welcome_page.cancel_timer_btn.show()

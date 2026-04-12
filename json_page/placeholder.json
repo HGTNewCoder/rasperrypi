@@ -1,19 +1,19 @@
 [
     {
         "emoji_map": {
-            "TOILET": "🚽",
-            "SHOWER": "🚿",
-            "WASH": "🧼",
-            "CLOTHES": "👕",
-            "FOOD": "🥪",
-            "FEELING": "😊",
-            "POSITION & COMFORT": "💪",
-            "ENTERTAINMENT": "📺",
-            "YES / NO": "✅",
-            "RECOMMEND ANSWER": "💡",
-            "CLOCK": "⏰",
-            "TEETH": "🧸",
-            "GROOMING": "💈"
+            "TOILET": "",
+            "SHOWER": "",
+            "WASH": "",
+            "CLOTHES": "",
+            "FOOD": "",
+            "FEELING": "",
+            "POSITION & COMFORT": "",
+            "ENTERTAINMENT": "",
+            "YES / NO": "",
+            "RECOMMEND ANSWER": "",
+            "CLOCK": "",
+            "TEETH": "",
+            "GROOMING": ""
         }
     }
 ]
