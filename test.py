@@ -1,20 +1,20 @@
 from gpiozero import Button
-from time import sleep
+from signal import pause
 
-BUTTON_GPIO = 17  # Physical pin 11
+# GPIO pin 11 (BCM numbering by default in gpiozero)
+button = Button(11)
 
+print("Testing GPIO Pin 11 - Press Ctrl+C to exit")
+print("-" * 40)
 
-def main():
-	button = Button(BUTTON_GPIO, pull_up=True, bounce_time=0.05)
+def on_press():
+    print("Pin 11: PRESSED")
 
-	button.when_pressed = lambda: print("Button pressed")
-	button.when_released = lambda: print("Button released")
+def on_release():
+    print("Pin 11: RELEASED")
 
-	print(f"Listening for button presses on GPIO {BUTTON_GPIO}...")
+# Assign event handlers
+button.when_pressed = on_press
+button.when_released = on_release
 
-	while True:
-		sleep(1)
-
-
-if __name__ == "__main__":
-	main()
+pause()  # Keep the script running
