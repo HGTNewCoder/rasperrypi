@@ -273,11 +273,11 @@ class CommBox(QFrame):
             self.title_label = QLabel(title)
             self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             if self.large_text:
-                self.title_label.setFont(QFont("Arial", 26, QFont.Weight.Bold))
+                self.title_label.setFont(QFont("Arial", 30, QFont.Weight.Bold))
                 self.title_label.setStyleSheet(
                     "color: #2C4C49; padding: 15px;" if self.use_picture else "color: #2C4C49; padding-top: 10px;")
             else:
-                self.title_label.setFont(QFont("Arial", 20, QFont.Weight.Bold))
+                self.title_label.setFont(QFont("Arial", 24, QFont.Weight.Bold))
                 self.title_label.setStyleSheet(
                     "color: #2C4C49; padding: 10px;" if self.use_picture
                     else "color: #2C4C49; padding-top: 10px;")
@@ -312,7 +312,7 @@ class CommBox(QFrame):
         self.desc_label.setWordWrap(True)
         self.desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.desc_label.setFont(
-            QFont("Arial", 22 if (self.large_text or self.hide_title) else 20, QFont.Weight.Bold))
+            QFont("Arial", 26 if (self.large_text or self.hide_title) else 24, QFont.Weight.Bold))
         self.desc_label.setStyleSheet("color: #444444;")
         bottom_layout.addWidget(self.desc_label)
         bottom_layout.addStretch(1)
@@ -1094,7 +1094,7 @@ def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback):
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setFixedSize(page.box_size, page.box_size)
         label.setStyleSheet(
-            "padding: 10px; font-weight: bold; font-size: 18px; "
+            "padding: 10px; font-weight: bold; font-size: 22px; "
             "color: #2C4C49; border: none; background: transparent;")
         box.setStyleSheet(f"""
             QPushButton {{ background-color: #ffffff; border: 2px solid {border_color}; border-radius: 18px; }}
