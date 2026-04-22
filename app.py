@@ -30,6 +30,8 @@ GREETING_QUOTE = "Good morning, Mr. K.D"
 GREETING_SUBQUOTE = "Welcome to your daily well-being check-in"
 GREETING_QUESTION = "How are you feeling today?"
 DEFAULT_UI_FONT_SIZE = 20
+DEFAULT_BOX_LABEL_FONT_PX = 22
+LARGE_BOX_LABEL_FONT_PX = 28
 
 # Stacked widget page indices.
 PAGE_WELCOME = 0
@@ -1049,7 +1051,7 @@ class BasePage(QFrame):
 # ==========================================
 # SHARED BIG SCREEN MIXIN
 # ==========================================
-def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback):
+def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback, box_label_font_px=DEFAULT_BOX_LABEL_FONT_PX):
     page.current_index = 0
     page._is_rendering = False
 
@@ -1094,7 +1096,7 @@ def build_big_screen_page(page, items, image_prefix, border_color, bg_fallback):
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         label.setFixedSize(page.box_size, page.box_size)
         label.setStyleSheet(
-            "padding: 10px; font-weight: bold; font-size: 22px; "
+            f"padding: 10px; font-weight: bold; font-size: {box_label_font_px}px; "
             "color: #2C4C49; border: none; background: transparent;")
         box.setStyleSheet(f"""
             QPushButton {{ background-color: #ffffff; border: 2px solid {border_color}; border-radius: 18px; }}
@@ -1198,14 +1200,22 @@ def big_screen_update_language(page, lang_code):
 # ==========================================
 class ScrollableCategoryPage(BasePage):
     def __init__(self, app, title, data_file, image_prefix, border_color, bg_fallback,
-                 back_page_index, translate_item_names=True, speak_on_select=False):
+                 back_page_index, translate_item_names=True, speak_on_select=False,
+                 box_label_font_px=DEFAULT_BOX_LABEL_FONT_PX):
         super().__init__(app, title)
         self.file_path = data_file
         self._back_page_index = back_page_index
         self._translate_item_names = translate_item_names
         self._speak_on_select = speak_on_select
         self.items = self.load_items_from_json(self.file_path, selected_language)
-        build_big_screen_page(self, self.items, image_prefix, border_color, bg_fallback)
+        build_big_screen_page(
+            self,
+            self.items,
+            image_prefix,
+            border_color,
+            bg_fallback,
+            box_label_font_px=box_label_font_px,
+        )
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -1290,6 +1300,7 @@ class FeelingPage(ScrollableCategoryPage):
             back_page_index=PAGE_FEELING,
             translate_item_names=True,
             speak_on_select=True,
+            box_label_font_px=LARGE_BOX_LABEL_FONT_PX,
         )
 
     def speech_text_for_item(self, item_text, lang_code=None):
@@ -1314,6 +1325,7 @@ class PositionPage(ScrollableCategoryPage):
             back_page_index=PAGE_POSITION,
             translate_item_names=True,
             speak_on_select=True,
+            box_label_font_px=LARGE_BOX_LABEL_FONT_PX,
         )
 
 
@@ -1342,7 +1354,14 @@ class RecommendPage(BasePage):
     def __init__(self, app):
         super().__init__(app, "RECOMMENDATIONS")
         self.recommend_items = self.load_items_from_json("json_page/recommend.json", selected_language)
-        build_big_screen_page(self, self.recommend_items, "recommend", "#FCF3CF", "#FCF3CF")
+        build_big_screen_page(
+            self,
+            self.recommend_items,
+            "recommend",
+            "#FCF3CF",
+            "#FCF3CF",
+            box_label_font_px=LARGE_BOX_LABEL_FONT_PX,
+        )
 
         self._box_buttons = []
         for i in range(self.h_layout.count()):
@@ -1363,7 +1382,7 @@ class RecommendPage(BasePage):
         self.big_screen.setPixmap(QPixmap())
         self.big_screen.setText(text)
         self.big_screen.setWordWrap(True)
-        self.big_screen.setFont(QFont("Arial", 38, QFont.Weight.Bold))
+        self.big_screen.setFont(QFont("Arial", 48, QFont.Weight.Bold))
         self.big_screen.setStyleSheet(
             "background-color: #FCF3CF; color: #2C4C49; border-radius: 25px; "
             "border: none; padding: 30px;")
